@@ -20,4 +20,6 @@
 
 Observed 表示成功读取字段；AlreadyCorrect 表示已有目标状态，不再发请求；Verified 表示发请求后读回符合目标。三者仍需与真实输入效果核对，不能代替全部应用兼容验收。
 
+2026-10-04 用户确认 smoke 中英文切换均符合预期。重喂反馈暴露了线程 profileHint 的硬门槛问题，现已移除：操作依据目标窗口中文语言布局及可读 IMM 模式，不拿脚本线程提示拒绝已切回的中文输入法，也不据此声称目标身份已可靠识别。重喂在最后复制后、删除后各检查连续 100ms 中文状态；失败为 ReadinessFailed，不发送首字符或保留删除后的缓存。自动规则没有持续纠正或循环重试。
+
 参考：[Windows conversion 模式](https://learn.microsoft.com/en-us/windows/win32/intl/ime-conversion-mode-values)、[Windows SDK 位定义](https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/um/imm.h)。

@@ -16,6 +16,7 @@
 #Include features\RefeedFeature.ahk
 #Include rules\RuleEngine.ahk
 #Include system\SelectionProbe.ahk
+#Include features\AutoSwitchFeature.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset) {
@@ -25,6 +26,7 @@ class App {
         this.logger := Logger(), this.settings := Defaults.Create()
         this.rules := RuleEngine(this.settings.rules)
         this.paused := false, this.ready := false
+        this.applying := false, this.gate := InputCoordinator()
         this.testMode := false
         this.handlers := Map() ; Unavailable feature keys are not reserved.
         this.exitHandler := ObjBindMethod(this, "Stop")
@@ -34,16 +36,18 @@ class App {
         if args.Length && args[1] = "--check" {
             ConfigStore.Parse(ConfigStore.Serialize(Defaults.Create()))
             RuleEngine(Defaults.Create().rules)
-            FileAppend("IME P1/P2/P3 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
+            FileAppend("IME P1/P2/P3/P4 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
             ExitApp(0)
         }
         if args.Length {
-            if args.Length = 1 && args[1] = "--test-refeed" {
+            if args.Length = 1 && (args[1] = "--test-refeed" || args[1] = "--test-all") {
                 this.testMode := true
                 this.AttachRefeed({contexts: NativeInputContext(), keys: TriggerKeys(),
                     clipboard: ClipboardService(), ime: ImeController(), sender: TextSender(), selection: SelectionProbe()})
+                if args[1] = "--test-all"
+                    this.AttachAuto({contexts: NativeInputContext(), ime: ImeController()})
             } else {
-                FileAppend("Usage: main.ahk [--check | --test-refeed]`n", "*")
+                FileAppend("Usage: main.ahk [--check | --test-refeed | --test-all]`n", "*")
                 ExitApp(2)
             }
         }
@@ -54,15 +58,29 @@ class App {
         this.tray := TrayMenu(this)
         OnExit(this.exitHandler)
         Persistent(true)
-        this.notifier.Show(this.testMode ? "重喂 MVP 测试已启动，请在无候选的人工测试文本上使用。"
-            : "配置与托盘已启动。重喂需显式启动测试版；自动切换尚未接入。")
+        this.notifier.Show(this.testMode ? "功能测试已启动，请使用无候选的人工测试文本；自动切换需全功能测试入口和自选规则。"
+            : "配置与托盘已启动。输入功能需显式启动测试版。")
     }
 
     AttachRefeed(adapters) {
+        adapters.gate := this.gate
         this.refeed := RefeedFeature(() => this.settings, adapters,
             () => this.ready && !this.paused && this.settings.enableRefeed)
         this.handlers["refeed"] := (*) => this.RunInputAction(false)
         this.handlers["recover"] := (*) => this.RunInputAction(true)
+        if this.HasOwnProp("auto")
+            this.refeed.onFinish := (outcome, context) => this.auto.ObserveManual(outcome, context)
+    }
+
+    AttachAuto(adapters, scheduler := unset) {
+        adapters.gate := this.gate
+        this.auto := AutoSwitchFeature(() => this.settings, () => this.rules, adapters,
+            () => this.ready && !this.paused && !this.applying && this.settings.enableAutoSwitch)
+        this.scheduler := IsSet(scheduler) ? scheduler : PollScheduler()
+        this.autoTick := ObjBindMethod(this.auto, "Tick")
+        this.auto.onResult := (result) => this.logger.Record("AutoSwitch", result.reason)
+        if this.HasOwnProp("refeed")
+            this.refeed.onFinish := (outcome, context) => this.auto.ObserveManual(outcome, context)
     }
 
     RunInputAction(recover) {
@@ -101,11 +119,17 @@ class App {
         try {
             candidate := this.store.Load()
             candidateRules := RuleEngine(candidate.rules)
-            this.hotkeys.Apply(this.Bindings(candidate))
-            this.settings := candidate, this.rules := candidateRules, this.ready := true
+            this.ApplyCandidate(candidate, candidateRules)
+            this.ready := true
+            if this.HasOwnProp("auto")
+                this.auto.Reevaluate()
             this.logger.Record("Startup", "Ready")
             return true
         } catch as err {
+            this.ready := false
+            try this.hotkeys.Clear()
+            if this.HasOwnProp("auto")
+                try this.scheduler.Stop(this.autoTick)
             this.logger.Record("Startup", "Failed")
             this.notifier.Show("启动失败：" err.Message)
             return false
@@ -127,8 +151,7 @@ class App {
         try {
             candidate := this.store.Load(false)
             candidateRules := RuleEngine(candidate.rules)
-            this.hotkeys.Apply(this.Bindings(candidate))
-            this.settings := candidate, this.rules := candidateRules
+            this.ApplyCandidate(candidate, candidateRules)
             this.logger.Record("Reload", "Applied")
             this.RefreshTray()
             this.notifier.Show("配置已重载。")
@@ -143,12 +166,19 @@ class App {
     TogglePause() {
         previous := this.paused
         this.paused := !previous
-        try this.hotkeys.Apply(this.Bindings(this.settings))
+        try {
+            this.hotkeys.Apply(this.Bindings(this.settings))
+            this.ConfigureAutoTimer(this.settings)
+        }
         catch {
             this.paused := previous
+            try this.hotkeys.Apply(this.Bindings(this.settings))
+            try this.ConfigureAutoTimer(this.settings)
             this.notifier.Show("暂停状态变更失败。")
             return false
         }
+        if !this.paused && this.HasOwnProp("auto")
+            this.auto.Reevaluate()
         this.logger.Record("Pause", this.paused ? "Paused" : "Resumed")
         this.RefreshTray()
         return true
@@ -162,9 +192,10 @@ class App {
             candidate := this.store.Load(false)
             candidate.%name% := !this.settings.%name%
             candidateRules := RuleEngine(candidate.rules)
-            this.hotkeys.Apply(this.Bindings(candidate))
-            this.store.Save(candidate)
-            this.settings := candidate, this.rules := candidateRules
+            wasAutoEnabled := this.settings.enableAutoSwitch
+            this.ApplyCandidate(candidate, candidateRules, true)
+            if !wasAutoEnabled && candidate.enableAutoSwitch && this.HasOwnProp("auto")
+                this.auto.Reevaluate()
         } catch as err {
             try this.hotkeys.Apply(this.Bindings(this.settings))
             this.notifier.Show("开关保存失败，保留之前的配置：" err.Message)
@@ -173,6 +204,42 @@ class App {
         this.logger.Record("FeatureToggle", "Saved")
         this.RefreshTray()
         return true
+    }
+
+    ApplyCandidate(candidate, candidateRules, persist := false) {
+        this.applying := true
+        try {
+            this.hotkeys.Apply(this.Bindings(candidate))
+            this.ConfigureAutoTimer(candidate)
+            if persist
+                this.store.Save(candidate)
+            wasAutoEnabled := this.settings.enableAutoSwitch
+            this.settings := candidate, this.rules := candidateRules
+            if this.HasOwnProp("auto") {
+                this.auto.ConfigChanged()
+                if !wasAutoEnabled && candidate.enableAutoSwitch
+                    this.auto.RequestReevaluation()
+            }
+        } catch as err {
+            try this.hotkeys.Apply(this.Bindings(this.settings))
+            if this.ready {
+                try this.ConfigureAutoTimer(this.settings)
+            } else if this.HasOwnProp("auto") {
+                try this.scheduler.Stop(this.autoTick)
+            }
+            throw err
+        } finally {
+            this.applying := false
+        }
+    }
+
+    ConfigureAutoTimer(settings) {
+        if !this.HasOwnProp("auto")
+            return
+        if settings.enableAutoSwitch && !this.paused
+            this.scheduler.Start(this.autoTick, settings.pollIntervalMs)
+        else
+            this.scheduler.Stop(this.autoTick)
     }
 
     OpenConfig() => Run('notepad.exe "' this.store.path '"')
@@ -184,6 +251,8 @@ class App {
 
     Stop(*) {
         this.ready := false
+        if this.HasOwnProp("auto")
+            this.scheduler.Stop(this.autoTick)
         this.hotkeys.Clear()
         if this.HasOwnProp("refeed") {
             try this.refeed.adapters.clipboard.End()

@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | 自动测试 | 每个相关功能点 | AHK 加载；文本边界；规则顺序；配置读写；未知状态；超时/失败/焦点变化等流程 | Codex |
 | 最小桌面验证 | P2 重喂 MVP 可运行后，或用户自愿提前检查；环境受限时延后 | 搜狗状态读取和中英文设置；一次重喂候选；一次取回 | 用户或获准继续的 computer-use |
-| 集中 UAT | 主要功能完整后，P6 发布前 | 浏览器/记事本、自动切换、手动选择、剪贴板、候选、输入法激活、微软对照；最后检查 exe | 用户为主，Codex依据记录修复 |
+| 集中 UAT | 主要功能完整后，P6 发布前 | 浏览器/记事本、自动切换、手动选择、剪贴板、候选、其他语言跳过与切回、微软对照；最后检查 exe | 用户为主，Codex依据记录修复 |
 
 模拟测试只能证明流程，不能证明第三方 IME 兼容。计划采用可注入的系统适配层，自动验证失败时不删除、停止发送和不覆盖手动选择等关键约定；对断言只重复实现的测试不作无意义扩展。
 
@@ -44,7 +44,7 @@ P3 增加固定上下文规则测试、隐藏自有窗口读取测试和 App 规
 2. 手动切到搜狗中文模式，再按 `Ctrl+Alt+F8`，记录是否为 Chinese。
 3. 按 `Ctrl+Alt+F9` 设置中文，再按一次，观察没有翻转；按 `Ctrl+Alt+F10` 设置英文，再按一次，观察没有翻转。
 4. 在记事本和浏览器各做一次，记录实际输入法状态是否与提示一致；提示失败也是有效结果，不需自行修复。
-5. 用 AHK 托盘退出该测试脚本，把 `logs/ime-smoke.log` 的相关结果和实际观察写入本地 REVIEW_QUEUE，或直接在聊天反馈。
+5. 用 AHK 托盘退出该测试脚本，把 `logs/ime-smoke.log` 的相关结果和实际观察回复仓库对应 Issue 或聊天；不要求每轮查版本。
 
 脚本不复制、不删除、不发送文本，不激活其他输入法，也不做会话级切换。日志不含输入内容或窗口标题，留在已忽略的本地 logs 目录。`profileHint` 是 TSF 上下文提示，不是目标窗口身份已可靠验证的声明；用户实际观察也是验收证据的一部分。
 
@@ -54,14 +54,18 @@ P3 增加固定上下文规则测试、隐藏自有窗口读取测试和 App 规
 
 重喂 MVP 到位后由 Codex提供可运行版本及短清单。最低验证：浏览器空白输入框内，搜狗英文模式下选中 `nihao`，触发重喂并看到候选；由用户选词，再在另一处取回原文。重复一次即可发现最关键的底层兼容问题。
 
-当前已提供 `tests/refeed-mvp.ahk` 显式测试入口，具体步骤和未验收范围见 [MVP 说明](refeed-mvp.md)。用户首轮 smoke 已记录读取及切中文符合实际、旧切英文失败；smoke v2 修正代码待复测，字段解释见 [诊断说明](ime-diagnostics.md)。未自动激活指定搜狗时，不删原文；无候选的前置条件及 Chromium 同窗焦点限制仍待完整验证。
+当前已提供 `tests/refeed-mvp.ahk` 显式测试入口，具体步骤和未验收范围见 [MVP 说明](refeed-mvp.md)。用户首轮 smoke 已记录读取及切中文符合实际、旧切英文失败；用户已确认 smoke 中英文切换均符合预期，字段解释见 [诊断说明](ime-diagnostics.md)。按 Issue #1 新决定不再激活指定输入法，其他语言跳过。四个重喂反馈点已修代码；新增 UIA 选区/焦点保护及首字符稳定等待仍须在真实 Chrome/记事本复测。
 
-集中 UAT 按 `tests/manual-checklist.md` 执行：先用搜狗跑浏览器和记事本的核心流程，再做微软拼音对照；测试指定输入法激活、规则变化与手动选择、复制/图片等剪贴板内容、失去焦点、候选状态、暂停恢复和最终 exe。现阶段不启动 VS Code。
+集中 UAT 按 `tests/manual-checklist.md` 执行：先用搜狗跑浏览器和记事本的核心流程，再做微软拼音对照；测试其他语言跳过与切回、规则变化与手动选择、复制/图片等剪贴板内容、失去焦点、候选状态、暂停恢复和最终 exe。现阶段不启动 VS Code。
 
-输入法激活的会话级后备方案另在 REVIEW_QUEUE 讨论；当前 `--activate-session` 仅为显式实验入口，不放进用户默认测试或生产自动切换。
+异步讨论改为仓库 Issues，每阶段查看新回复并在对应 Issue 反馈；本地 REVIEW_QUEUE 不再维护。会话级激活已移出功能需求；当前 `--activate-session` 仅为显式实验入口，不放进用户默认测试或生产自动切换。
 
 ## 证据与阶段状态
 
 ROADMAP 分开记录“代码/自动测试完成”和“真实桌面待验收”。兼容结果只填写实际执行的案例，失败、未测试和假设分开写；技术路线可以继续试验，发布与日常启用仍以真实桌面 UAT 为门槛。
 
 参考：[Codex Windows 沙箱](https://learn.chatgpt.com/docs/windows/windows-sandbox)、[TSF ActivateProfile 的作用范围](https://learn.microsoft.com/en-us/windows/win32/api/msctf/nf-msctf-itfinputprocessorprofilemgr-activateprofile)。
+
+P4 全功能入口为 `tests/features-mvp.ahk` / `main.ahk --test-all`，见 [全功能说明](auto-switch-mvp.md)。自动测试覆盖返回窗口、同规则刷新、不同规则同动作、失败不重试、重载、暂停/启停、候选保护、互斥及原生计时器取消。无复制选区探测通过隐藏自有 Edit 和 UIA 范围端点验证，没有操作用户应用。热键及首字符真实效果仍以复测为准。
+
+接口依据：[AHK 钩子热键](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/Hotkeys.htm)、[Alt 菜单抑制](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/lib/A_MenuMaskKey.htm)、[UIA 选区](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationtextpattern-getselection)。

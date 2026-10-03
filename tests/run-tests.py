@@ -13,7 +13,7 @@ def main():
     sys.stdout.reconfigure(errors='backslashreplace')
     root = Path(__file__).resolve().parents[1]
     checks = [
-        ('main.ahk', ['--check'], 'IME P1/P2/P3 modules loaded'),
+        ('main.ahk', ['--check'], 'IME P1/P2/P3/P4 modules loaded'),
         ('tests/unit-ime-status.ahk', [], 'PASS 13 IME status cases'),
         ('tests/unit-ime-control.ahk', [], 'PASS 23 assertions'),
         ('tests/unit-config.ahk', [], 'PASS 42 assertions'),
@@ -24,13 +24,16 @@ def main():
         ('tests/unit-text-rules.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-clipboard.ahk', [], 'PASS 30 assertions'),
         ('tests/unit-refeed.ahk', [], 'PASS 53 assertions'),
-        ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2/P3 modules loaded'),
+        ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2/P3/P4 modules loaded'),
         ('tests/unit-rules.ahk', [], 'PASS 44 assertions'),
         ('tests/unit-window-context.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-app-rules.ahk', [], 'PASS 23 assertions'),
         ('tests/unit-refeed-feedback.ahk', [], 'PASS 20 assertions'),
         ('tests/unit-ime-ready.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-selection.ahk', [], 'PASS 11 assertions'),
+        ('tests/unit-auto-switch.ahk', [], 'PASS 39 assertions'),
+        ('tests/unit-app-auto.ahk', [], 'PASS 38 assertions'),
+        ('tests/features-mvp.ahk', ['--check'], 'IME P1/P2/P3/P4 modules loaded'),
     ]
     failures = 0
     for relative, arguments, expected in checks:

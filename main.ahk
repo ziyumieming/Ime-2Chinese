@@ -2,5 +2,5 @@
 #SingleInstance Force
 #Include src\App.ahk
 
-; P1 provides configuration and lifecycle. Input features attach in P2/P4.
+; Normal entry is configuration/tray only. Input features use explicit MVP flags.
 App().Run(A_Args)
