@@ -37,7 +37,7 @@ class ConfigStore {
     }
 
     static Parse(text) {
-        settings := Defaults.Create(), sections := Map(), current := ""
+        settings := Defaults.Create(), sections := Map(), sectionOrder := [], current := ""
         sections.CaseSense := "Off"
         for lineNumber, raw in StrSplit(StrReplace(text, "`r"), "`n") {
             line := Trim(raw, " `t" Chr(0xFEFF))
@@ -50,6 +50,7 @@ class ConfigStore {
                 fields := Map()
                 fields.CaseSense := "Off"
                 sections[current] := fields
+                sectionOrder.Push(current) ; Map enumeration does not preserve file order.
                 continue
             }
             equal := InStr(line, "=")
@@ -60,7 +61,8 @@ class ConfigStore {
                 throw ValueError("空键名或重复的配置键，第 " lineNumber " 行。")
             sections[current][key] := Trim(SubStr(line, equal + 1))
         }
-        for section, fields in sections {
+        for section in sectionOrder {
+            fields := sections[section]
             switch StrLower(section) {
                 case "general":
                     ConfigStore.CheckKeys(fields, ["EnableRefeed", "EnableAutoSwitch", "RefeedHotkey", "RecoverHotkey", "SendIntervalMs", "MaxRefeedLength", "CopyTimeoutMs"])

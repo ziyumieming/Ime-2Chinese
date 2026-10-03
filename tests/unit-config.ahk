@@ -36,6 +36,14 @@ RunTests() {
         TestAssert.Equal(rules.rules[1].titleContains, "中文 = test", "unicode and equals retained")
         roundtrip := ConfigStore.Parse(ConfigStore.Serialize(rules))
         TestAssert.Equal(roundtrip.rules[1].titleContains, "中文 = test", "rule roundtrip")
+        unsorted := ConfigStore.Parse("[Rule.ZException]`nProcess=msedge.exe`nMode=Ignore"
+            . "`n[Rule.AGeneral]`nProcess=msedge.exe`nMode=English")
+        TestAssert.Equal(unsorted.rules[1].id, "ZException", "file order is not alphabetical")
+        TestAssert.Equal(unsorted.rules[2].id, "AGeneral", "later broad rule stays later")
+        savedOrder := ConfigStore.Parse(ConfigStore.Serialize(unsorted))
+        TestAssert.Equal(savedOrder.rules[1].id, "ZException", "nonalphabetical order survives serialization")
+        TestAssert.Throws(() => ConfigStore.Parse("[Rule.id]`nProcess=a.exe`nMode=Chinese"
+            . "`n[Rule.ID]`nProcess=b.exe`nMode=English"), "duplicate IDs differing only in case rejected")
 
         ; All filesystem mutations are inside this repository's ignored test directory.
         directory := A_ScriptDir "\..\.task-tmp\config-test-" DllCall("GetCurrentProcessId", "UInt")

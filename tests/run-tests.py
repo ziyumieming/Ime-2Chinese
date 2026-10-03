@@ -9,12 +9,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ahk', default=r'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe')
     args = parser.parse_args()
+    sys.stdout.reconfigure(errors='backslashreplace')
     root = Path(__file__).resolve().parents[1]
     checks = [
         ('main.ahk', ['--check'], 'IME P1/P2 modules loaded'),
         ('tests/unit-ime-status.ahk', [], 'PASS 13 IME status cases'),
         ('tests/unit-ime-control.ahk', [], 'PASS 23 assertions'),
-        ('tests/unit-config.ahk', [], 'PASS 38 assertions'),
+        ('tests/unit-config.ahk', [], 'PASS 42 assertions'),
         ('tests/unit-app.ahk', [], 'PASS 40 assertions'),
         ('tests/integration-lifecycle.ahk', [], 'PASS 10 assertions'),
         ('tests/ime-smoke.ahk', ['--check'], 'IME smoke tool loaded'),
@@ -23,11 +24,13 @@ def main():
         ('tests/unit-clipboard.ahk', [], 'PASS 30 assertions'),
         ('tests/unit-refeed.ahk', [], 'PASS 53 assertions'),
         ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2 modules loaded'),
+        ('tests/unit-rules.ahk', [], 'PASS 44 assertions'),
+        ('tests/unit-window-context.ahk', [], 'PASS 18 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:
         try:
-            result = subprocess.run([args.ahk, '/ErrorStdOut', str(root / relative)] + arguments,
+            result = subprocess.run([args.ahk, '/ErrorStdOut=UTF-8', str(root / relative)] + arguments,
                                     cwd=str(root), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     timeout=10)
             output = result.stdout.decode('utf-8', errors='replace').strip()
