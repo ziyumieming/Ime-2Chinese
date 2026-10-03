@@ -29,13 +29,13 @@ class App {
             ExitApp(2)
         }
         if !this.Start() {
-            MsgBox("���ü���ʧ�ܣ����� " this.store.path "`n�������˳���ԭ�ļ�δ�����ǡ�", "Ime-2Chinese")
+            MsgBox("配置加载失败，请检查 " this.store.path "`n程序已退出；原文件未被覆盖。", "Ime-2Chinese")
             ExitApp(1)
         }
         this.tray := TrayMenu(this)
         OnExit(this.exitHandler)
         Persistent(true)
-        this.notifier.Show("��������������������ι���Զ��л���δ���롣")
+        this.notifier.Show("配置与托盘已启动。重喂和自动切换尚未接入。")
     }
 
     Start() {
@@ -47,7 +47,7 @@ class App {
             return true
         } catch as err {
             this.logger.Record("Startup", "Failed")
-            this.notifier.Show("����ʧ�ܣ�" err.Message)
+            this.notifier.Show("启动失败：" err.Message)
             return false
         }
     }
@@ -70,11 +70,11 @@ class App {
             this.settings := candidate
             this.logger.Record("Reload", "Applied")
             this.RefreshTray()
-            this.notifier.Show("���������ء�")
+            this.notifier.Show("配置已重载。")
             return true
         } catch as err {
             this.logger.Record("Reload", "Rejected")
-            this.notifier.Show("����ʧ�ܣ�������һ����Ч���ã�" err.Message)
+            this.notifier.Show("重载失败，保留上一次有效配置：" err.Message)
             return false
         }
     }
@@ -85,7 +85,7 @@ class App {
         try this.hotkeys.Apply(this.Bindings(this.settings))
         catch {
             this.paused := previous
-            this.notifier.Show("��ͣ״̬���ʧ�ܡ�")
+            this.notifier.Show("暂停状态变更失败。")
             return false
         }
         this.logger.Record("Pause", this.paused ? "Paused" : "Resumed")
@@ -105,7 +105,7 @@ class App {
             this.settings := candidate
         } catch as err {
             try this.hotkeys.Apply(this.Bindings(this.settings))
-            this.notifier.Show("���ر���ʧ�ܣ�����֮ǰ�����ã�" err.Message)
+            this.notifier.Show("开关保存失败，保留之前的配置：" err.Message)
             return false
         }
         this.logger.Record("FeatureToggle", "Saved")

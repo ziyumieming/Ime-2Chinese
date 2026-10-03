@@ -16,6 +16,6 @@ class Logger {
         text := ""
         for entry in this.entries
             text .= entry "`n"
-        return text != "" ? RTrim(text, "`n") : "������ϡ�"
+        return text != "" ? RTrim(text, "`n") : "暂无诊断。"
     }
 }

@@ -3,16 +3,16 @@
 <meta charset="utf-8">
 <title>IME compatibility fixture</title>
 <style>body{font:18px system-ui;max-width:900px;margin:36px auto}input,textarea{display:block;width:90%;font:24px system-ui;margin:12px 0;padding:12px}.events{white-space:pre-wrap;font:14px monospace}</style>
-<h1>IME ���ؼ��ݲ���</h1>
-<p>��ʹ���˹�������ҳ�治�����������ͱ���������ȡϵͳ�����塣</p>
-<label>����� A<input id="input-a" autocomplete="off"></label>
-<label>����� B<textarea id="input-b" rows="4"></textarea></label>
-<p id="focus">��δ�۽�</p>
+<h1>IME 本地兼容测试</h1>
+<p>仅使用人工样例。页面不联网、不发送表单，不读取系统剪贴板。</p>
+<label>输入框 A<input id="input-a" autocomplete="off"></label>
+<label>输入框 B<textarea id="input-b" rows="4"></textarea></label>
+<p id="focus">尚未聚焦</p>
 <pre class="events" id="events"></pre>
 <script>
 const events=[];
 for(const element of document.querySelectorAll('input,textarea')){
-  element.addEventListener('focus',()=>document.querySelector('#focus').textContent='���㣺'+element.id);
+  element.addEventListener('focus',()=>document.querySelector('#focus').textContent='焦点：'+element.id);
   for(const type of ['compositionstart','compositionend','input']){
     element.addEventListener(type,event=>{
       events.push(`${element.id}: ${type}; composing=${Boolean(event.isComposing)}`);

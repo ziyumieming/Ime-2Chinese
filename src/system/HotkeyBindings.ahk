@@ -26,7 +26,7 @@ class HotkeyBindings {
                 }
             } catch {
                 this.Clear()
-                throw Error("�ȼ�ע��ͻָ�ʧ�ܣ��ȼ���ͣ�á�")
+                throw Error("热键注册和恢复失败；热键已停用。")
             }
             throw err
         }

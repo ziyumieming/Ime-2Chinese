@@ -8,7 +8,7 @@ class ConfigStore {
     Load(createIfMissing := true) {
         if !FileExist(this.path) {
             if !createIfMissing
-                throw Error("�����ļ������ڡ�")
+                throw Error("配置文件不存在。")
             this.Save(Defaults.Create())
         }
         return ConfigStore.Parse(FileRead(this.path, "UTF-8"))
@@ -24,11 +24,11 @@ class ConfigStore {
         try {
             outputFile := FileOpen(temporary, "w", "UTF-8-RAW")
             if !outputFile
-                throw Error("����д�������ļ���")
+                throw Error("不能写入配置文件。")
             try outputFile.Write(text)
             finally outputFile.Close()
             if FileRead(temporary, "UTF-8") != text
-                throw Error("����д�벻������ԭ�ļ����ֲ��䡣")
+                throw Error("配置写入不完整，原文件保持不变。")
             FileMove(temporary, this.path, true)
         } finally {
             if FileExist(temporary)
@@ -46,7 +46,7 @@ class ConfigStore {
             if RegExMatch(line, "^\[([^\]]+)\]$", &match) {
                 current := Trim(match[1])
                 if sections.Has(current)
-                    throw ValueError("�ظ������ýڣ��� " lineNumber " �С�")
+                    throw ValueError("重复的配置节，第 " lineNumber " 行。")
                 fields := Map()
                 fields.CaseSense := "Off"
                 sections[current] := fields
@@ -54,10 +54,10 @@ class ConfigStore {
             }
             equal := InStr(line, "=")
             if current = "" || !equal
-                throw ValueError("���ø�ʽ��Ч���� " lineNumber " �С�")
+                throw ValueError("配置格式无效，第 " lineNumber " 行。")
             key := Trim(SubStr(line, 1, equal - 1))
             if key = "" || sections[current].Has(key)
-                throw ValueError("�ռ������ظ������ü����� " lineNumber " �С�")
+                throw ValueError("空键名或重复的配置键，第 " lineNumber " 行。")
             sections[current][key] := Trim(SubStr(line, equal + 1))
         }
         for section, fields in sections {
@@ -75,29 +75,29 @@ class ConfigStore {
                     ConfigStore.CheckKeys(fields, ["RefeedTarget"])
                     settings.refeedTarget := ConfigStore.Value(fields, "RefeedTarget", "SogouPinyin")
                     if settings.refeedTarget != "SogouPinyin" && settings.refeedTarget != "MicrosoftPinyin"
-                        throw ValueError("RefeedTarget ��֧�� SogouPinyin �� MicrosoftPinyin��")
+                        throw ValueError("RefeedTarget 仅支持 SogouPinyin 或 MicrosoftPinyin。")
                 case "autoswitch":
                     ConfigStore.CheckKeys(fields, ["PollIntervalMs", "DefaultAction"])
                     settings.pollIntervalMs := ConfigStore.Number(fields, "PollIntervalMs", 300, 100, 5000)
                     settings.defaultAction := ConfigStore.Value(fields, "DefaultAction", "Ignore")
                     if settings.defaultAction != "Ignore"
-                        throw ValueError("DefaultAction ����Ϊ Ignore����ƥ��ʱ����ԭ״̬��")
+                        throw ValueError("DefaultAction 必须为 Ignore；无匹配时保持原状态。")
                 default:
                     if !RegExMatch(section, "i)^Rule\.([A-Za-z0-9_-]+)$", &ruleMatch)
-                        throw ValueError("δ֪���ýڣ�" section)
+                        throw ValueError("未知配置节：" section)
                     ConfigStore.CheckKeys(fields, ["Process", "TitleContains", "Mode"])
                     process := ConfigStore.Value(fields, "Process", ""), mode := ConfigStore.Value(fields, "Mode", "")
                     if !RegExMatch(process, "i)^[^\\/:*?" Chr(34) "<>|\s]+\.exe$")
-                        throw ValueError("������ָ������·���Ľ����������� notepad.exe��")
+                        throw ValueError("规则须指定不含路径的进程名，例如 notepad.exe。")
                     if mode != "Chinese" && mode != "English" && mode != "Ignore"
-                        throw ValueError("���� Mode ��Ϊ Chinese��English �� Ignore��")
+                        throw ValueError("规则 Mode 须为 Chinese、English 或 Ignore。")
                     settings.rules.Push({id: ruleMatch[1], process: process,
                         titleContains: ConfigStore.Value(fields, "TitleContains", ""), mode: mode})
             }
         }
         first := HotkeySpec.Parse(settings.refeedHotkey), second := HotkeySpec.Parse(settings.recoverHotkey)
         if first.identity = second.identity
-            throw ValueError("��ι��ȡ��ԭ�ĵ��ȼ�������ͬ��")
+            throw ValueError("重喂与取回原文的热键不能相同。")
         settings.refeedHotkey := first.value, settings.recoverHotkey := second.value
         return settings
     }
@@ -107,7 +107,7 @@ class ConfigStore {
     static Number(fields, key, fallback, minimum, maximum) {
         value := ConfigStore.Value(fields, key, fallback)
         if !RegExMatch(value, "^\d+$") || value < minimum || value > maximum
-            throw ValueError(key " ��ֵ���� " minimum "�C" maximum " ֮�䡣")
+            throw ValueError(key " 的值须在 " minimum "–" maximum " 之间。")
         return Integer(value)
     }
 
@@ -118,7 +118,7 @@ class ConfigStore {
             names[key] := true
         for key in fields {
             if !names.Has(key)
-                throw ValueError("δ֪���ü���" key)
+                throw ValueError("未知配置键：" key)
         }
     }
 

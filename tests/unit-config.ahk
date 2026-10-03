@@ -29,13 +29,13 @@ RunTests() {
             "[AutoSwitch]`nDefaultAction=Chinese", "[Rule.bad]`nProcess=C:\app.exe`nMode=English",
             "[Rule.bad]`nProcess=notepad.exe`nMode=Invalid"]
             TestAssert.Throws(() => ConfigStore.Parse(text), "invalid config rejected")
-        rules := ConfigStore.Parse("[Rule.exception]`nProcess=msedge.exe`nTitleContains=���� = test`nMode=Ignore"
+        rules := ConfigStore.Parse("[Rule.exception]`nProcess=msedge.exe`nTitleContains=中文 = test`nMode=Ignore"
             . "`n[Rule.general]`nProcess=msedge.exe`nMode=Chinese")
         TestAssert.Equal(rules.rules[1].id, "exception", "exception stays first")
         TestAssert.Equal(rules.rules[2].id, "general", "general stays second")
-        TestAssert.Equal(rules.rules[1].titleContains, "���� = test", "unicode and equals retained")
+        TestAssert.Equal(rules.rules[1].titleContains, "中文 = test", "unicode and equals retained")
         roundtrip := ConfigStore.Parse(ConfigStore.Serialize(rules))
-        TestAssert.Equal(roundtrip.rules[1].titleContains, "���� = test", "rule roundtrip")
+        TestAssert.Equal(roundtrip.rules[1].titleContains, "中文 = test", "rule roundtrip")
 
         ; All filesystem mutations are inside this repository's ignored test directory.
         directory := A_ScriptDir "\..\.task-tmp\config-test-" DllCall("GetCurrentProcessId", "UInt")
@@ -49,7 +49,7 @@ RunTests() {
             store.Save(created)
             loaded := store.Load(false)
             TestAssert.Equal(loaded.sendIntervalMs, 27, "changed timing saved")
-            TestAssert.Equal(loaded.rules[1].titleContains, "���� = test", "UTF-8 persistence")
+            TestAssert.Equal(loaded.rules[1].titleContains, "中文 = test", "UTF-8 persistence")
             before := FileRead(path, "UTF-8")
             loaded.sendIntervalMs := -1
             TestAssert.Throws(() => store.Save(loaded), "bad save rejected")
