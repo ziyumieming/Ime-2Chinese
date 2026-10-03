@@ -46,23 +46,23 @@ class ImeController {
         return status
     }
 
-    EnsureChinese(hwnd) => this.EnsureMode(hwnd, "Chinese")
-    EnsureEnglish(hwnd) => this.EnsureMode(hwnd, "English")
+    EnsureChinese(hwnd, canContinue := 0) => this.EnsureMode(hwnd, "Chinese", canContinue)
+    EnsureEnglish(hwnd, canContinue := 0) => this.EnsureMode(hwnd, "English", canContinue)
 
-    EnsureMode(hwnd, mode) {
+    EnsureMode(hwnd, mode, canContinue := 0) {
         if mode != "Chinese" && mode != "English"
             return {ok: false, reason: "InvalidMode"}
         ctx := this.Capture(hwnd)
-        if !this.IsCurrent(ctx)
+        if !this.Continue(ctx, canContinue)
             return {ok: false, reason: "TargetNotFocused"}
         before := this.GetStatus(hwnd)
         if before.mode = "Unsupported" || (before.mode = "Unknown" && before.reason != "ModeFlagsDisagree")
             return {ok: false, reason: before.reason, status: before}
-        if before.profileKind != "SogouPinyin" && before.profileKind != "MicrosoftPinyin"
-            return {ok: false, reason: "UnsupportedProfileHint", status: before}
+        ; The caller-thread TSF hint may remain stale after a manual IME change.
+        ; The target's Chinese HKL and readable IMM mode are the operation gate.
         if before.mode = mode
             return {ok: true, reason: "AlreadyCorrect", status: before}
-        if !this.IsCurrent(ctx)
+        if !this.Continue(ctx, canContinue)
             return {ok: false, reason: "FocusChanged"}
         if mode = "Chinese" && !(before.conversionMode & 1) {
             sent := this.Message(before.imeHwnd, 2, before.conversionMode | 1)
@@ -71,7 +71,7 @@ class ImeController {
         }
         desiredOpen := mode = "Chinese" ? 1 : 0
         if before.openStatus != desiredOpen {
-            if !this.IsCurrent(ctx)
+            if !this.Continue(ctx, canContinue)
                 return {ok: false, reason: "FocusChanged"}
             opened := this.Message(before.imeHwnd, 6, desiredOpen)
             if !opened.ok
@@ -79,10 +79,10 @@ class ImeController {
         }
         deadline := this.Now() + this.verificationTimeoutMs
         loop {
-            if !this.IsCurrent(ctx)
+            if !this.Continue(ctx, canContinue)
                 return {ok: false, reason: "FocusChanged"}
             after := this.GetStatus(hwnd)
-            if after.profileKind = before.profileKind && after.mode = mode
+            if after.mode = mode
                 return {ok: true, reason: "Verified", status: after}
             if this.Now() >= deadline
                 return {ok: false, reason: "VerificationFailed", status: after}
@@ -90,17 +90,46 @@ class ImeController {
         }
     }
 
-    PrepareRefeed(context, target) {
-        if !this.IsCurrent(context)
+    PrepareRefeed(context, target, canContinue := 0) {
+        if !this.Continue(context, canContinue)
             return {ok: false, reason: "FocusChanged"}
-        status := this.GetStatus(context.hwnd)
-        if status.profileKind != target || status.mode = "Unsupported"
-            return {ok: false, reason: "TargetImeNotActive", status: status}
-        ; Session-wide activation remains diagnostic-only pending Q11.
-        return this.EnsureChinese(context.hwnd)
+        allowed := this.CheckRefeedContext(context)
+        if !allowed.ok
+            return allowed
+        ; Keep target config readable for older files; never activate another IME.
+        return this.EnsureChinese(context.hwnd, canContinue)
+    }
+
+    CheckRefeedContext(context) {
+        current := this.Capture(context.hwnd)
+        return {ok: (current.hkl & 0xFFFF) = 0x0804,
+            reason: (current.hkl & 0xFFFF) = 0x0804 ? "Allowed" : "IgnoredOtherLanguage"}
+    }
+
+    ReadyForInput(context, canContinue := 0, stableMs := 100) {
+        prepared := this.EnsureChinese(context.hwnd, canContinue)
+        if !prepared.ok
+            return prepared
+        deadline := this.Now() + this.verificationTimeoutMs, stableSince := -1
+        loop {
+            if !this.Continue(context, canContinue)
+                return {ok: false, reason: "FocusChanged"}
+            status := this.GetStatus(context.hwnd)
+            if status.mode = "Chinese" {
+                if stableSince < 0
+                    stableSince := this.Now()
+                if this.Now() - stableSince >= stableMs
+                    return {ok: true, reason: "InputReady", status: status}
+            } else
+                stableSince := -1
+            if this.Now() >= deadline
+                return {ok: false, reason: "ReadinessFailed", status: status}
+            this.Wait(20)
+        }
     }
 
     Capture(hwnd) => WindowContext.Get(hwnd)
+    Continue(context, guard) => this.IsCurrent(context) && (!guard || guard.Call())
     IsCurrent(context) => WindowContext.IsCurrent(context)
     Now() => A_TickCount
     Wait(milliseconds) => Sleep(milliseconds)

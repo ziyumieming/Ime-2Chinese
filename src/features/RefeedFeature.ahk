@@ -1,9 +1,12 @@
 #Requires AutoHotkey v2.0
+#Include ..\common\InputCoordinator.ahk
 
 class RefeedFeature {
     __New(settingsProvider, adapters, isEnabled) {
         this.settingsProvider := settingsProvider, this.adapters := adapters
         this.isEnabled := isEnabled, this.busy := false, this.lastOriginal := ""
+        this.gate := adapters.HasOwnProp("gate") ? adapters.gate : InputCoordinator()
+        this.onFinish := (*) => 0
     }
 
     ConvertSelection(*) {
@@ -11,8 +14,11 @@ class RefeedFeature {
             return {ok: false, reason: "Busy", changed: false}
         if !this.isEnabled.Call()
             return {ok: false, reason: "Paused", changed: false}
+        if !this.gate.TryEnter("Manual")
+            return {ok: false, reason: "Busy", changed: false}
         this.busy := true
         outcome := {ok: false, reason: "SystemError", changed: false}
+        context := 0
         try {
             settings := this.settingsProvider.Call()
             context := this.adapters.contexts.Capture()
@@ -20,7 +26,12 @@ class RefeedFeature {
                 outcome.reason := "HotkeyReleaseTimeout"
             else if !this.CanContinue(context)
                 outcome.reason := "TargetChanged"
+            else if !(allowed := this.adapters.ime.CheckRefeedContext(context)).ok
+                outcome.reason := allowed.reason
+            else if (selection := this.adapters.selection.Check(context)).state != "Selected"
+                outcome.reason := selection.state = "Empty" ? "NoSelection" : "SelectionUnknown"
             else {
+                this.activeSelection := selection
                 this.adapters.clipboard.Begin()
                 outcome := this.Convert(context, settings)
             }
@@ -33,7 +44,7 @@ class RefeedFeature {
             } catch {
                 outcome.clipboardReason := "ClipboardRestoreFailed"
             }
-            this.busy := false
+            this.Finish(outcome, context)
         }
         return outcome
     }
@@ -47,7 +58,7 @@ class RefeedFeature {
             return {ok: false, reason: validated.reason, changed: false}
         if !this.CanContinue(context)
             return {ok: false, reason: "TargetChanged", changed: false}
-        ime := this.adapters.ime.PrepareRefeed(context, settings.refeedTarget)
+        ime := this.adapters.ime.PrepareRefeed(context, settings.refeedTarget, () => this.CanContinue(context))
         if !ime.ok
             return {ok: false, reason: ime.reason, changed: false}
         if !this.CanContinue(context)
@@ -59,6 +70,15 @@ class RefeedFeature {
         if verified.text != validated.original
             return {ok: false, reason: "SelectionChanged", changed: false}
         if !this.CanContinue(context) || !this.adapters.clipboard.OwnsCurrent()
+            return {ok: false, reason: "TargetChanged", changed: false}
+        ready := this.adapters.ime.ReadyForInput(context, () => this.CanContinue(context))
+        if !ready.ok
+            return {ok: false, reason: ready.reason, changed: false}
+        if this.adapters.selection.Check(context).state != "Selected"
+            return {ok: false, reason: "SelectionChanged", changed: false}
+        if !this.adapters.clipboard.OwnsCurrent()
+            return {ok: false, reason: "ClipboardChanged", changed: false}
+        if !this.CanContinue(context)
             return {ok: false, reason: "TargetChanged", changed: false}
         canContinue := () => this.CanContinue(context)
         ; Cache at the first destructive attempt, and retain it for partial failure.
@@ -72,6 +92,11 @@ class RefeedFeature {
             return deletion
         }
         try {
+            ; Copy/Backspace may change the app's input state. Never send the
+            ; first letter on a single immediate acknowledgement of Chinese.
+            ready := this.adapters.ime.ReadyForInput(context, canContinue)
+            if !ready.ok
+                return {ok: false, reason: ready.reason, changed: true}
             sent := this.adapters.sender.SendLetters(validated.letters, settings.sendIntervalMs, canContinue)
             return {ok: sent.ok, reason: sent.reason, changed: true, sent: sent.sent}
         } catch {
@@ -86,18 +111,36 @@ class RefeedFeature {
             return {ok: false, reason: "Paused"}
         if this.lastOriginal = ""
             return {ok: false, reason: "NoCachedOriginal"}
+        if !this.gate.TryEnter("Manual")
+            return {ok: false, reason: "Busy"}
         this.busy := true
+        outcome := {ok: false, reason: "RecoverFailed"}, context := 0
         try {
             context := this.adapters.contexts.Capture()
             if !this.adapters.keys.Release()
-                return {ok: false, reason: "HotkeyReleaseTimeout"}
-            return this.adapters.sender.SendOriginal(this.lastOriginal, () => this.CanContinue(context))
+                outcome := {ok: false, reason: "HotkeyReleaseTimeout"}
+            else
+                outcome := this.adapters.sender.SendOriginal(this.lastOriginal, () => this.CanContinue(context))
         } catch {
-            return {ok: false, reason: "RecoverFailed"}
+            outcome := {ok: false, reason: "RecoverFailed"}
         } finally {
+            this.Finish(outcome, context)
+        }
+        return outcome
+    }
+
+    Finish(outcome, context) {
+        if this.HasOwnProp("activeSelection")
+            this.DeleteProp("activeSelection")
+        try this.onFinish.Call(outcome, context)
+        catch
+            outcome.coordinationReason := "CoordinationFailed"
+        finally {
             this.busy := false
+            this.gate.Leave("Manual")
         }
     }
 
     CanContinue(context) => this.isEnabled.Call() && this.adapters.contexts.IsCurrent(context)
+        && (!this.HasOwnProp("activeSelection") || this.adapters.selection.IsCurrent(this.activeSelection))
 }

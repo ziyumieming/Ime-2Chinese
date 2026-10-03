@@ -95,4 +95,10 @@ class PreparedIme {
         this.onPrepare.Call()
         return {ok: this.ok, reason: this.ok ? "Verified" : "TargetImeNotActive"}
     }
+    CheckRefeedContext(*) => {ok: true, reason: "Allowed"}
+    ReadyForInput(*) => {ok: true, reason: "InputReady"}
+}
+class FakeSelection {
+    Check(*) => {state: "Selected", token: 0}
+    IsCurrent(*) => true
 }

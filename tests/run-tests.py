@@ -28,6 +28,9 @@ def main():
         ('tests/unit-rules.ahk', [], 'PASS 44 assertions'),
         ('tests/unit-window-context.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-app-rules.ahk', [], 'PASS 23 assertions'),
+        ('tests/unit-refeed-feedback.ahk', [], 'PASS 20 assertions'),
+        ('tests/unit-ime-ready.ahk', [], 'PASS 18 assertions'),
+        ('tests/unit-selection.ahk', [], 'PASS 11 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:

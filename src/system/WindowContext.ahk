@@ -45,5 +45,6 @@ class WindowContext {
             && current.controlHwnd = context.controlHwnd
             && current.inputThreadId = context.inputThreadId
             && current.processId = context.processId
+            && current.hkl = context.hkl
     }
 }

@@ -16,7 +16,7 @@ class RefeedFixture {
         this.clipboard := ClipboardService(this.clipboardDriver)
         this.feature := RefeedFeature(() => this.settings,
             {contexts: this.contexts, keys: this.keys, clipboard: this.clipboard,
-             ime: this.ime, sender: TextSender(this.output)}, () => this.enabled)
+             ime: this.ime, sender: TextSender(this.output), selection: FakeSelection()}, () => this.enabled)
     }
 }
 

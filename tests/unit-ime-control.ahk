@@ -12,6 +12,7 @@ class FakeIme extends ImeController {
         this.writes := [], this.tick := 0, this.focused := true
         this.ignoreClose := false, this.failWrite := false, this.loseFocusAfterWrite := false
         this.kind := "SogouPinyin"
+        this.languageSupported := true
     }
     Capture(hwnd) => {hwnd: hwnd}
     IsCurrent(*) => this.focused
@@ -20,7 +21,7 @@ class FakeIme extends ImeController {
         this.tick += milliseconds
     }
     GetStatus(hwnd) {
-        mode := ImeController.DecodeMode(this.openStatus, this.conversion)
+        mode := this.languageSupported ? ImeController.DecodeMode(this.openStatus, this.conversion) : "Unsupported"
         return {hwnd: hwnd, imeHwnd: 2, mode: mode, profileKind: this.kind,
             openStatus: this.openStatus, conversionMode: this.conversion,
             reason: mode = "Unknown" ? "ModeFlagsDisagree" : "Observed"}
@@ -77,9 +78,9 @@ RunTests() {
         controller.failWrite := true
         TestAssert.Equal(controller.EnsureEnglish(1).reason, "ImeCloseFailed", "close failure surfaced")
         controller := FakeIme()
-        controller.kind := "Other"
-        TestAssert.Equal(controller.EnsureEnglish(1).ok, false, "unsupported profile left alone")
-        TestAssert.Equal(controller.writes.Length, 0, "no unsupported profile write")
+        controller.languageSupported := false
+        TestAssert.Equal(controller.EnsureEnglish(1).ok, false, "other language left alone")
+        TestAssert.Equal(controller.writes.Length, 0, "no other language write")
         TestAssert.Finish("IME explicit open/close, contradictory readback, idempotence and focus failures")
         ExitApp(0)
     } catch as err {

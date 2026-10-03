@@ -1,8 +1,12 @@
 #Requires AutoHotkey v2.0
 
 class NativeHotkeys {
-    Enable(key, callback) => Hotkey(key, callback, "On T1")
-    Disable(key) => Hotkey(key, "Off")
+    __New() {
+        ; Mask Alt's menu activation with an unassigned key rather than Ctrl.
+        A_MenuMaskKey := "vkE8"
+    }
+    Enable(key, callback) => Hotkey("$" key, callback, "On T1")
+    Disable(key) => Hotkey("$" key, "Off")
 }
 
 class HotkeyBindings {

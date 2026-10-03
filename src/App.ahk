@@ -15,6 +15,7 @@
 #Include system\InputRuntime.ahk
 #Include features\RefeedFeature.ahk
 #Include rules\RuleEngine.ahk
+#Include system\SelectionProbe.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset) {
@@ -40,7 +41,7 @@ class App {
             if args.Length = 1 && args[1] = "--test-refeed" {
                 this.testMode := true
                 this.AttachRefeed({contexts: NativeInputContext(), keys: TriggerKeys(),
-                    clipboard: ClipboardService(), ime: ImeController(), sender: TextSender()})
+                    clipboard: ClipboardService(), ime: ImeController(), sender: TextSender(), selection: SelectionProbe()})
             } else {
                 FileAppend("Usage: main.ahk [--check | --test-refeed]`n", "*")
                 ExitApp(2)
@@ -67,6 +68,8 @@ class App {
     RunInputAction(recover) {
         result := recover ? this.refeed.RecoverLast() : this.refeed.ConvertSelection()
         this.logger.Record(recover ? "Recover" : "Refeed", result.reason)
+        if result.reason = "NoSelection" || result.reason = "IgnoredOtherLanguage" || result.reason = "SelectionUnknown"
+            return result
         messages := Map("CandidatesReady", "重喂完成，请自行选择候选。", "OriginalRecovered", "原文已取回。",
             "NoSelection", "没有取得选区。", "TextTooLong", "选区超过长度上限。",
             "InvalidText", "只支持英文字母和空白。", "WhitespaceOnly", "选区没有英文字母。",
@@ -79,6 +82,7 @@ class App {
             "ClipboardChanged", "剪贴板已更新，本次停止并保留新内容。",
             "UnexpectedClipboardOwner", "无法确认复制内容来自目标应用，本次停止。",
             "VerificationFailed", "未能确认输入法模式，本次停止。",
+            "ReadinessFailed", "输入法尚未稳定，本次停止。",
             "FocusChanged", "切换输入法时目标焦点发生变化，本次停止。",
             "TargetNotFocused", "目标没有可确认的焦点，本次停止。",
             "HotkeyReleaseTimeout", "热键修饰键未及时释放，本次停止。")
