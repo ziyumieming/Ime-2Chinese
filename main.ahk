@@ -2,5 +2,5 @@
 #SingleInstance Force
 #Include src\App.ahk
 
-; Bootstrap only. Feature registration starts after the P0 compatibility gate.
+; P1 provides configuration and lifecycle. Input features attach in P2/P4.
 App().Run(A_Args)

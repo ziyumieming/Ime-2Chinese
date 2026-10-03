@@ -1,13 +1,128 @@
 #Requires AutoHotkey v2.0
+#Include config\Defaults.ahk
+#Include config\HotkeySpec.ahk
+#Include config\ConfigStore.ahk
+#Include common\Logger.ahk
+#Include common\Notify.ahk
+#Include system\HotkeyBindings.ahk
+#Include ui\TrayMenu.ahk
 
 class App {
+    __New(store := unset, hotkeys := unset, notifier := unset) {
+        this.store := IsSet(store) ? store : ConfigStore()
+        this.hotkeys := IsSet(hotkeys) ? hotkeys : HotkeyBindings()
+        this.notifier := IsSet(notifier) ? notifier : Notify()
+        this.logger := Logger(), this.settings := Defaults.Create()
+        this.paused := false, this.ready := false
+        this.handlers := Map() ; Unavailable feature keys are not reserved.
+        this.exitHandler := ObjBindMethod(this, "Stop")
+    }
+
     Run(args) {
         if args.Length && args[1] = "--check" {
-            FileAppend("IME skeleton loaded; features pending P0 verification.`n", "*")
+            ConfigStore.Parse(ConfigStore.Serialize(Defaults.Create()))
+            FileAppend("IME P1 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
             ExitApp(0)
         }
+        if args.Length {
+            FileAppend("Usage: main.ahk [--check]`n", "*")
+            ExitApp(2)
+        }
+        if !this.Start() {
+            MsgBox("���ü���ʧ�ܣ����� " this.store.path "`n�������˳���ԭ�ļ�δ�����ǡ�", "Ime-2Chinese")
+            ExitApp(1)
+        }
+        this.tray := TrayMenu(this)
+        OnExit(this.exitHandler)
+        Persistent(true)
+        this.notifier.Show("��������������������ι���Զ��л���δ���롣")
+    }
 
-        MsgBox("Project bootstrap only. Input features are not active yet.`nSee ROADMAP.md for progress.", "Ime-2Chinese")
-        ExitApp(0)
+    Start() {
+        try {
+            candidate := this.store.Load()
+            this.hotkeys.Apply(this.Bindings(candidate))
+            this.settings := candidate, this.ready := true
+            this.logger.Record("Startup", "Ready")
+            return true
+        } catch as err {
+            this.logger.Record("Startup", "Failed")
+            this.notifier.Show("����ʧ�ܣ�" err.Message)
+            return false
+        }
+    }
+
+    Bindings(settings) {
+        bindings := []
+        if !this.paused && settings.enableRefeed {
+            if this.handlers.Has("refeed")
+                bindings.Push({key: settings.refeedHotkey, callback: this.handlers["refeed"]})
+            if this.handlers.Has("recover")
+                bindings.Push({key: settings.recoverHotkey, callback: this.handlers["recover"]})
+        }
+        return bindings
+    }
+
+    Reload() {
+        try {
+            candidate := this.store.Load(false)
+            this.hotkeys.Apply(this.Bindings(candidate))
+            this.settings := candidate
+            this.logger.Record("Reload", "Applied")
+            this.RefreshTray()
+            this.notifier.Show("���������ء�")
+            return true
+        } catch as err {
+            this.logger.Record("Reload", "Rejected")
+            this.notifier.Show("����ʧ�ܣ�������һ����Ч���ã�" err.Message)
+            return false
+        }
+    }
+
+    TogglePause() {
+        previous := this.paused
+        this.paused := !previous
+        try this.hotkeys.Apply(this.Bindings(this.settings))
+        catch {
+            this.paused := previous
+            this.notifier.Show("��ͣ״̬���ʧ�ܡ�")
+            return false
+        }
+        this.logger.Record("Pause", this.paused ? "Paused" : "Resumed")
+        this.RefreshTray()
+        return true
+    }
+
+    ToggleFeature(name) {
+        if name != "enableRefeed" && name != "enableAutoSwitch"
+            throw ValueError("Unknown feature")
+        try {
+            ; Read the file first so a tray toggle cannot overwrite pending edits.
+            candidate := this.store.Load(false)
+            candidate.%name% := !this.settings.%name%
+            this.hotkeys.Apply(this.Bindings(candidate))
+            this.store.Save(candidate)
+            this.settings := candidate
+        } catch as err {
+            try this.hotkeys.Apply(this.Bindings(this.settings))
+            this.notifier.Show("���ر���ʧ�ܣ�����֮ǰ�����ã�" err.Message)
+            return false
+        }
+        this.logger.Record("FeatureToggle", "Saved")
+        this.RefreshTray()
+        return true
+    }
+
+    OpenConfig() => Run('notepad.exe "' this.store.path '"')
+
+    RefreshTray() {
+        if this.HasOwnProp("tray")
+            this.tray.Refresh()
+    }
+
+    Stop(*) {
+        this.hotkeys.Clear()
+        this.ready := false
+        return 0
     }
 }
