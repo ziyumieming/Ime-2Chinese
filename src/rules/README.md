@@ -1,3 +1,5 @@
 # 规则引擎（P3）
 
-后续创建 RuleEngine。进程名精确匹配，标题可选包含匹配，忽略大小写；配置顺序第一条命中，返回规则身份与 Chinese/English/Ignore/NoMatch。纯匹配逻辑不操作输入法。
+RuleEngine 已实现有序纯匹配：进程名精确、标题可选文字包含、忽略大小写；返回稳定身份、Chinese/English/Ignore/NoMatch 与原因。SameMatch 比较身份和匹配定义，忽略位置及实际标题刷新；HasTitleRules 为 P4 提供重匹配依据。配置和结果值均复制，匹配不操作系统。
+
+无法读取更早标题例外时不执行后续通用规则。App 与配置同步替换有效引擎，注册或保存失败保留旧引擎。自动监听尚未接入。示例与接口见 [规则说明](../../docs/rules.md)。

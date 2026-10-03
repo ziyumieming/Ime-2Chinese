@@ -8,7 +8,7 @@ Windows + AutoHotkey v2 输入法辅助工具，面向搜狗拼音，微软拼�
 
 ## 当前状态
 
-P1 配置与常驻骨架已实现，P2 重喂/取回 MVP 已接入显式测试入口。普通启动不占用输入功能热键、不自动切换；测试启动保留 demo 热键和参数。用户 smoke 反馈发现英文切换问题，现已修正设置请求及误判逻辑，真实桌面修正版待复测，完整兼容性仍待 UAT。
+P1 配置与常驻骨架已实现，P2 重喂/取回 MVP 已接入显式测试入口，P3 窗口上下文与规则引擎已完成自动验证。普通启动不占用输入功能热键、不自动切换；测试启动保留 demo 热键和参数。用户 smoke 反馈发现英文切换问题，现已修正设置请求及误判逻辑，真实桌面修正版待复测，完整兼容性仍待 UAT。
 
 直接在仓库主分支 `main` 开发和提交，不采用功能分支或 PR 流程。新项目见 [main](https://github.com/ziyumieming/Ime-2Chinese/tree/main)。
 
@@ -29,6 +29,7 @@ P1 配置与常驻骨架已实现，P2 重喂/取回 MVP 已接入显式测试�
 - [ROADMAP.md](ROADMAP.md)：阶段进度、已完成事项、验证和下一步。
 - [PLAN.md](PLAN.md)：完整需求、设计边界和验收标准。
 - [用户指南](docs/user-guide.md)：原型使用与当前限制。
+- [规则说明与示例](docs/rules.md)：文件顺序、Ignore 例外及稳定规则身份；自动监听在 P4 接入。
 - [架构说明](docs/architecture.md)：目录职责和实现顺序。
 - [手动验收](tests/manual-checklist.md)、[兼容记录](tests/compatibility-results.md)。
 

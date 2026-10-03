@@ -14,6 +14,7 @@
 #Include system\TextSender.ahk
 #Include system\InputRuntime.ahk
 #Include features\RefeedFeature.ahk
+#Include rules\RuleEngine.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset) {
@@ -21,6 +22,7 @@ class App {
         this.hotkeys := IsSet(hotkeys) ? hotkeys : HotkeyBindings()
         this.notifier := IsSet(notifier) ? notifier : Notify()
         this.logger := Logger(), this.settings := Defaults.Create()
+        this.rules := RuleEngine(this.settings.rules)
         this.paused := false, this.ready := false
         this.testMode := false
         this.handlers := Map() ; Unavailable feature keys are not reserved.
@@ -30,7 +32,8 @@ class App {
     Run(args) {
         if args.Length && args[1] = "--check" {
             ConfigStore.Parse(ConfigStore.Serialize(Defaults.Create()))
-            FileAppend("IME P1/P2 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
+            RuleEngine(Defaults.Create().rules)
+            FileAppend("IME P1/P2/P3 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
             ExitApp(0)
         }
         if args.Length {
@@ -93,8 +96,9 @@ class App {
     Start() {
         try {
             candidate := this.store.Load()
+            candidateRules := RuleEngine(candidate.rules)
             this.hotkeys.Apply(this.Bindings(candidate))
-            this.settings := candidate, this.ready := true
+            this.settings := candidate, this.rules := candidateRules, this.ready := true
             this.logger.Record("Startup", "Ready")
             return true
         } catch as err {
@@ -118,8 +122,9 @@ class App {
     Reload() {
         try {
             candidate := this.store.Load(false)
+            candidateRules := RuleEngine(candidate.rules)
             this.hotkeys.Apply(this.Bindings(candidate))
-            this.settings := candidate
+            this.settings := candidate, this.rules := candidateRules
             this.logger.Record("Reload", "Applied")
             this.RefreshTray()
             this.notifier.Show("配置已重载。")
@@ -152,9 +157,10 @@ class App {
             ; Read the file first so a tray toggle cannot overwrite pending edits.
             candidate := this.store.Load(false)
             candidate.%name% := !this.settings.%name%
+            candidateRules := RuleEngine(candidate.rules)
             this.hotkeys.Apply(this.Bindings(candidate))
             this.store.Save(candidate)
-            this.settings := candidate
+            this.settings := candidate, this.rules := candidateRules
         } catch as err {
             try this.hotkeys.Apply(this.Bindings(this.settings))
             this.notifier.Show("开关保存失败，保留之前的配置：" err.Message)

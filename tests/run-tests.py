@@ -9,10 +9,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--ahk', default=r'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe')
     args = parser.parse_args()
+    # A console code page must not hide a failure containing Unicode paths/text.
     sys.stdout.reconfigure(errors='backslashreplace')
     root = Path(__file__).resolve().parents[1]
     checks = [
-        ('main.ahk', ['--check'], 'IME P1/P2 modules loaded'),
+        ('main.ahk', ['--check'], 'IME P1/P2/P3 modules loaded'),
         ('tests/unit-ime-status.ahk', [], 'PASS 13 IME status cases'),
         ('tests/unit-ime-control.ahk', [], 'PASS 23 assertions'),
         ('tests/unit-config.ahk', [], 'PASS 42 assertions'),
@@ -23,9 +24,10 @@ def main():
         ('tests/unit-text-rules.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-clipboard.ahk', [], 'PASS 30 assertions'),
         ('tests/unit-refeed.ahk', [], 'PASS 53 assertions'),
-        ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2 modules loaded'),
+        ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2/P3 modules loaded'),
         ('tests/unit-rules.ahk', [], 'PASS 44 assertions'),
         ('tests/unit-window-context.ahk', [], 'PASS 18 assertions'),
+        ('tests/unit-app-rules.ahk', [], 'PASS 23 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:
