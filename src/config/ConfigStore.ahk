@@ -16,7 +16,7 @@ class ConfigStore {
 
     Save(settings) {
         text := ConfigStore.Serialize(settings)
-        ConfigStore.Parse(text) ; Validate before touching the old outputFile.
+        ConfigStore.Parse(text) ; Validate before touching the old file.
         SplitPath(this.path, , &directory)
         if directory != ""
             DirCreate(directory)
@@ -123,7 +123,7 @@ class ConfigStore {
     }
 
     static Serialize(settings) {
-        text := "; Ime-2Chinese configuration. Rules are matched in outputFile order.`n"
+        text := "; Ime-2Chinese configuration. Rules are matched in file order.`n"
             . "[General]`nEnableRefeed=" (!!settings.enableRefeed) "`nEnableAutoSwitch=" (!!settings.enableAutoSwitch)
             . "`nRefeedHotkey=" settings.refeedHotkey "`nRecoverHotkey=" settings.recoverHotkey
             . "`nSendIntervalMs=" settings.sendIntervalMs "`nMaxRefeedLength=" settings.maxRefeedLength

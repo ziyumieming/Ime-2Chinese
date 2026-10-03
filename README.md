@@ -8,7 +8,7 @@ Windows + AutoHotkey v2 输入法辅助工具，面向搜狗拼音，微软拼�
 
 ## 当前状态
 
-P1 配置与常驻骨架已实现：主程序首次生成用户配置，提供托盘、暂停、开关、配置重载及最近诊断。重喂和自动切换在 P2/P4 接入，目前不占用它们的热键。P0 诊断与模式控制代码可独立测试，搜狗真实兼容性仍待反馈/UAT。
+P1 配置与常驻骨架已实现，P2 重喂/取回 MVP 已接入显式测试入口。普通启动不占用输入功能热键、不自动切换；测试启动保留 demo 热键和参数。用户 smoke 反馈发现英文切换问题，现已修正设置请求及误判逻辑，真实桌面修正版待复测，完整兼容性仍待 UAT。
 
 直接在仓库主分支 `main` 开发和提交，不采用功能分支或 PR 流程。新项目见 [main](https://github.com/ziyumieming/Ime-2Chinese/tree/main)。
 
@@ -23,6 +23,8 @@ P1 配置与常驻骨架已实现：主程序首次生成用户配置，提供�
 双击 `main.ahk` 启动托盘程序；配置位于 `%AppData%\ImeAssist\settings.ini`。当前常驻版本不注入文本、不自动切换输入法。托盘选择“退出”可结束程序。
 
 开发检查：用 Python 运行 `tests/run-tests.py`；Python 仅供测试，运行主程序只需 AutoHotkey v2。真实输入法测试见 [测试方案](docs/testing-strategy.md)，可提前使用 `tests/ime-smoke.ahk`。
+
+重喂 MVP：双击 `tests/refeed-mvp.ahk`，或运行 `main.ahk --test-refeed`。先手动启用搜狗，在没有候选的人工文本上测试；指定输入法激活与已有候选的保护尚未完成。步骤及限制见 [MVP 说明](docs/refeed-mvp.md)，数值含义见 [诊断字段](docs/ime-diagnostics.md)。
 
 - [ROADMAP.md](ROADMAP.md)：阶段进度、已完成事项、验证和下一步。
 - [PLAN.md](PLAN.md)：完整需求、设计边界和验收标准。

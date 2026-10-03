@@ -11,17 +11,18 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     checks = [
-        ('main.ahk', ['--check'], 'IME P1 modules loaded'),
+        ('main.ahk', ['--check'], 'IME P1/P2 modules loaded'),
         ('tests/unit-ime-status.ahk', [], 'PASS 13 IME status cases'),
         ('tests/unit-ime-control.ahk', [], 'PASS 23 assertions'),
         ('tests/unit-config.ahk', [], 'PASS 38 assertions'),
-        ('tests/unit-app.ahk', [], 'PASS 31 assertions'),
+        ('tests/unit-app.ahk', [], 'PASS 40 assertions'),
         ('tests/integration-lifecycle.ahk', [], 'PASS 10 assertions'),
         ('tests/ime-smoke.ahk', ['--check'], 'IME smoke tool loaded'),
         ('tests/ime-diagnostics.ahk', ['--help'], 'Read-only:'),
         ('tests/unit-text-rules.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-clipboard.ahk', [], 'PASS 30 assertions'),
         ('tests/unit-refeed.ahk', [], 'PASS 53 assertions'),
+        ('tests/refeed-mvp.ahk', ['--check'], 'IME P1/P2 modules loaded'),
     ]
     failures = 0
     for relative, arguments, expected in checks:

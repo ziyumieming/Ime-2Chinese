@@ -2,6 +2,7 @@
 #Warn All, StdOut
 #Include ..\src\App.ahk
 #Include TestAssert.ahk
+#Include FakeInput.ahk
 
 class FakeHotkeys {
     __New() {
@@ -88,6 +89,22 @@ RunTests() {
         TestAssert.Equal(history.entries.Length, 2, "diagnostic history bounded")
         TestAssert.Equal(InStr(history.Recent(), "One"), 0, "oldest diagnostic evicted")
         TestAssert.Throws(() => history.Record("input text", "OK"), "arbitrary text not logged")
+        output := FakeOutput(), contexts := FakeContext(), clipDriver := FakeClipboardDriver()
+        application := App(FakeStore(), HotkeyBindings(FakeHotkeys()), QuietNotify())
+        application.AttachRefeed({contexts: contexts, keys: FakeKeys(), ime: PreparedIme(),
+            clipboard: ClipboardService(clipDriver), sender: TextSender(output)})
+        TestAssert.Equal(application.Start(), true, "wired MVP starts with injected adapters")
+        TestAssert.Equal(application.hotkeys.active.Length, 2, "MVP owns configured keys")
+        TestAssert.Equal(application.RunInputAction(false).ok, true, "app dispatches refeed")
+        TestAssert.Equal(output.letters, "nihao", "app dispatch reaches sender")
+        TestAssert.Equal(InStr(application.logger.Recent(), "ni hao"), 0, "app diagnostics contain no original")
+        application.TogglePause()
+        TestAssert.Equal(application.RunInputAction(true).reason, "Paused", "app pause stops recovery")
+        application.TogglePause()
+        TestAssert.Equal(application.RunInputAction(true).ok, true, "app resume enables recovery")
+        TestAssert.Equal(output.literal[1], "ni hao", "app recovery preserves spaces")
+        application.Stop()
+        TestAssert.Equal(application.refeed.lastOriginal, "", "exit clears memory cache")
         TestAssert.Finish("lifecycle, pause, reload rollback, feature persistence and diagnostics")
         ExitApp(0)
     } catch as err {
