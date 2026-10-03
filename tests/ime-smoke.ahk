@@ -42,9 +42,10 @@ Smoke(action) {
             outcome := result.reason
             status := result.HasOwnProp("status") ? result.status : controller.GetStatus(context.hwnd)
         }
-        summary := Format("{} | mode={} | profileHint={} | open={} | conversion={} | focusKnown={}",
-            outcome, status.mode, status.profileKind, status.openStatus,
-            status.conversionMode, context.focusKnown)
+        summary := Format("v2 {} | requested={} | mode={} | profileHint={} | open={} | conversion={} (0x{:04X}) | native={} | focusKnown={}",
+            outcome, action, status.mode, status.profileKind, status.openStatus,
+            status.conversionMode, status.conversionMode & 0xFFFF,
+            !!(status.conversionMode & 1), context.focusKnown)
         Report(action, summary)
     } catch as err {
         Report(action, "Error: " err.Message)

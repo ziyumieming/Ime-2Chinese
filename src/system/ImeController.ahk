@@ -9,7 +9,7 @@ class ImeController {
     }
 
     GetStatus(hwnd) {
-        ctx := WindowContext.Get(hwnd)
+        ctx := this.Capture(hwnd)
         status := {mode: "Unknown", reason: "InvalidWindow", hwnd: hwnd,
             controlHwnd: ctx.controlHwnd, hkl: ctx.hkl, imeHwnd: 0,
             openStatus: -1, conversionMode: -1, profileKind: "Unknown", profileScope: "SessionHint"}
@@ -41,7 +41,8 @@ class ImeController {
         status.openStatus := open.value
         status.conversionMode := conversion.value
         status.mode := ImeController.DecodeMode(open.value, conversion.value)
-        status.reason := status.mode = "Unknown" ? "InvalidImeStatus" : "Observed"
+        status.reason := status.mode != "Unknown" ? "Observed"
+            : ImeController.RawValid(open.value, conversion.value) ? "ModeFlagsDisagree" : "InvalidImeStatus"
         return status
     }
 
@@ -51,41 +52,58 @@ class ImeController {
     EnsureMode(hwnd, mode) {
         if mode != "Chinese" && mode != "English"
             return {ok: false, reason: "InvalidMode"}
-        ctx := WindowContext.Get(hwnd)
-        if !WindowContext.IsCurrent(ctx)
+        ctx := this.Capture(hwnd)
+        if !this.IsCurrent(ctx)
             return {ok: false, reason: "TargetNotFocused"}
         before := this.GetStatus(hwnd)
-        if before.mode = "Unknown" || before.mode = "Unsupported"
+        if before.mode = "Unsupported" || (before.mode = "Unknown" && before.reason != "ModeFlagsDisagree")
             return {ok: false, reason: before.reason, status: before}
         if before.profileKind != "SogouPinyin" && before.profileKind != "MicrosoftPinyin"
             return {ok: false, reason: "UnsupportedProfileHint", status: before}
         if before.mode = mode
             return {ok: true, reason: "AlreadyCorrect", status: before}
-        conversion := mode = "Chinese" ? (before.conversionMode | 1) : (before.conversionMode & ~1)
-        if !WindowContext.IsCurrent(ctx)
+        if !this.IsCurrent(ctx)
             return {ok: false, reason: "FocusChanged"}
-        sent := this.Message(before.imeHwnd, 2, conversion)
-        if !sent.ok
-            return {ok: false, reason: "ImeWriteFailed"}
-        if mode = "Chinese" && !before.openStatus {
-            if !WindowContext.IsCurrent(ctx)
-                return {ok: false, reason: "FocusChanged"}
-            opened := this.Message(before.imeHwnd, 6, 1)
-            if !opened.ok
-                return {ok: false, reason: "ImeOpenFailed"}
+        if mode = "Chinese" && !(before.conversionMode & 1) {
+            sent := this.Message(before.imeHwnd, 2, before.conversionMode | 1)
+            if !sent.ok
+                return {ok: false, reason: "ImeWriteFailed"}
         }
-        deadline := A_TickCount + this.verificationTimeoutMs
+        desiredOpen := mode = "Chinese" ? 1 : 0
+        if before.openStatus != desiredOpen {
+            if !this.IsCurrent(ctx)
+                return {ok: false, reason: "FocusChanged"}
+            opened := this.Message(before.imeHwnd, 6, desiredOpen)
+            if !opened.ok
+                return {ok: false, reason: desiredOpen ? "ImeOpenFailed" : "ImeCloseFailed"}
+        }
+        deadline := this.Now() + this.verificationTimeoutMs
         loop {
-            if !WindowContext.IsCurrent(ctx)
+            if !this.IsCurrent(ctx)
                 return {ok: false, reason: "FocusChanged"}
             after := this.GetStatus(hwnd)
-            if after.mode = mode
+            if after.profileKind = before.profileKind && after.mode = mode
                 return {ok: true, reason: "Verified", status: after}
-            if A_TickCount >= deadline
+            if this.Now() >= deadline
                 return {ok: false, reason: "VerificationFailed", status: after}
-            Sleep(20)
+            this.Wait(20)
         }
     }
+
+    PrepareRefeed(context, target) {
+        if !this.IsCurrent(context)
+            return {ok: false, reason: "FocusChanged"}
+        status := this.GetStatus(context.hwnd)
+        if status.profileKind != target || status.mode = "Unsupported"
+            return {ok: false, reason: "TargetImeNotActive", status: status}
+        ; Session-wide activation remains diagnostic-only pending Q11.
+        return this.EnsureChinese(context.hwnd)
+    }
+
+    Capture(hwnd) => WindowContext.Get(hwnd)
+    IsCurrent(context) => WindowContext.IsCurrent(context)
+    Now() => A_TickCount
+    Wait(milliseconds) => Sleep(milliseconds)
 
     Message(imeHwnd, command, value := 0) {
         result := 0
@@ -97,8 +115,14 @@ class ImeController {
     }
 
     static DecodeMode(openStatus, conversionMode) {
-        if (openStatus != 0 && openStatus != 1) || conversionMode < 0 || conversionMode > 0xFFFF
+        if !this.RawValid(openStatus, conversionMode)
             return "Unknown"
-        return openStatus && (conversionMode & 1) ? "Chinese" : "English"
+        if !openStatus
+            return "English"
+        ; Sogou can remain Chinese with open=1/native=0. Never call that English.
+        return (conversionMode & 1) ? "Chinese" : "Unknown"
     }
+
+    static RawValid(openStatus, conversionMode) => (openStatus = 0 || openStatus = 1)
+        && conversionMode >= 0 && conversionMode <= 0xFFFF
 }

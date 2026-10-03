@@ -12,7 +12,8 @@ def main():
     root = Path(__file__).resolve().parents[1]
     checks = [
         ('main.ahk', ['--check'], 'IME P1 modules loaded'),
-        ('tests/unit-ime-status.ahk', [], 'PASS 10 IME status cases'),
+        ('tests/unit-ime-status.ahk', [], 'PASS 13 IME status cases'),
+        ('tests/unit-ime-control.ahk', [], 'PASS 23 assertions'),
         ('tests/unit-config.ahk', [], 'PASS 38 assertions'),
         ('tests/unit-app.ahk', [], 'PASS 31 assertions'),
         ('tests/integration-lifecycle.ahk', [], 'PASS 10 assertions'),

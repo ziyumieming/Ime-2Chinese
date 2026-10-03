@@ -4,9 +4,10 @@
 #Include ..\src\system\ImeProfiles.ahk
 #Include ..\src\system\ImeController.ahk
 
-cases := [[0, 0, "English"], [0, 1, "English"], [1, 0, "English"], [1, 1, "Chinese"],
-    [1, 9, "Chinese"], [1, 8, "English"], [-1, 1, "Unknown"], [2, 1, "Unknown"],
-    [1, -1, "Unknown"], [1, 0xFFFFFFFF, "Unknown"]]
+cases := [[0, 0, "English"], [0, 1, "English"], [1, 0, "Unknown"], [1, 1, "Chinese"],
+    [1, 9, "Chinese"], [1, 8, "Unknown"], [-1, 1, "Unknown"], [2, 1, "Unknown"],
+    [1, -1, "Unknown"], [1, 0xFFFFFFFF, "Unknown"], [1, 1025, "Chinese"],
+    [1, 1024, "Unknown"], [0, 1025, "English"]]
 for index, sample in cases {
     actual := ImeController.DecodeMode(sample[1], sample[2])
     if actual != sample[3] {
