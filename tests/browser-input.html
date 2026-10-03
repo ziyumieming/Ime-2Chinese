@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>IME compatibility fixture</title>
+<style>body{font:18px system-ui;max-width:900px;margin:36px auto}input,textarea{display:block;width:90%;font:24px system-ui;margin:12px 0;padding:12px}.events{white-space:pre-wrap;font:14px monospace}</style>
+<h1>IME ���ؼ��ݲ���</h1>
+<p>��ʹ���˹�������ҳ�治�����������ͱ���������ȡϵͳ�����塣</p>
+<label>����� A<input id="input-a" autocomplete="off"></label>
+<label>����� B<textarea id="input-b" rows="4"></textarea></label>
+<p id="focus">��δ�۽�</p>
+<pre class="events" id="events"></pre>
+<script>
+const events=[];
+for(const element of document.querySelectorAll('input,textarea')){
+  element.addEventListener('focus',()=>document.querySelector('#focus').textContent='���㣺'+element.id);
+  for(const type of ['compositionstart','compositionend','input']){
+    element.addEventListener(type,event=>{
+      events.push(`${element.id}: ${type}; composing=${Boolean(event.isComposing)}`);
+      document.querySelector('#events').textContent=events.slice(-12).join('\n');
+    });
+  }
+}
+</script>
+</html>

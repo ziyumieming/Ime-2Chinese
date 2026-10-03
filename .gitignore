@@ -15,3 +15,5 @@ __pycache__/
 .idea/
 Thumbs.db
 Desktop.ini
+
+/REVIEW_QUEUE.md
