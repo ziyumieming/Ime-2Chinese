@@ -19,6 +19,9 @@ def main():
         ('tests/integration-lifecycle.ahk', [], 'PASS 10 assertions'),
         ('tests/ime-smoke.ahk', ['--check'], 'IME smoke tool loaded'),
         ('tests/ime-diagnostics.ahk', ['--help'], 'Read-only:'),
+        ('tests/unit-text-rules.ahk', [], 'PASS 18 assertions'),
+        ('tests/unit-clipboard.ahk', [], 'PASS 30 assertions'),
+        ('tests/unit-refeed.ahk', [], 'PASS 53 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:

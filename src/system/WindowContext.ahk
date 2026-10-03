@@ -4,11 +4,13 @@ class WindowContext {
     static GetActive() => this.Get(DllCall("user32\GetForegroundWindow", "Ptr"))
 
     static Get(hwnd) {
-        context := {hwnd: hwnd, controlHwnd: 0, threadId: 0, inputThreadId: 0,
+        context := {hwnd: hwnd, controlHwnd: 0, threadId: 0, inputThreadId: 0, processId: 0,
             processName: "", title: "", className: "", focusKnown: false, hkl: 0}
         if !hwnd || !DllCall("user32\IsWindow", "Ptr", hwnd, "Int")
             return context
-        context.threadId := DllCall("user32\GetWindowThreadProcessId", "Ptr", hwnd, "Ptr", 0, "UInt")
+        processId := 0
+        context.threadId := DllCall("user32\GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &processId, "UInt")
+        context.processId := processId
         info := Buffer(8 + 6 * A_PtrSize + 16, 0)
         NumPut("UInt", info.Size, info)
         if DllCall("user32\GetGUIThreadInfo", "UInt", context.threadId, "Ptr", info, "Int") {
@@ -33,5 +35,6 @@ class WindowContext {
             && context.focusKnown && current.focusKnown
             && current.controlHwnd = context.controlHwnd
             && current.inputThreadId = context.inputThreadId
+            && current.processId = context.processId
     }
 }
