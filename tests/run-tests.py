@@ -36,6 +36,8 @@ def main():
         ('tests/features-mvp.ahk', ['--check'], 'IME P1/P2/P3/P4/P5 modules loaded'),
         ('tests/unit-settings.ahk', [], 'PASS 29 assertions'),
         ('tests/unit-app-settings.ahk', [], 'PASS 40 assertions'),
+        ('tests/unit-diagnostics.ahk', [], 'PASS 19 assertions'),
+        ('tests/integration-settings.ahk', [], 'PASS 24 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:

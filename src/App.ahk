@@ -19,6 +19,7 @@
 #Include features\AutoSwitchFeature.ahk
 #Include config\SettingsModel.ahk
 #Include ui\SettingsWindow.ahk
+#Include ui\DiagnosticsWindow.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset) {
@@ -285,6 +286,20 @@ class App {
         if !this.HasOwnProp("settingsWindow")
             this.settingsWindow := SettingsWindow(this)
         this.settingsWindow.Show()
+    }
+
+    OpenDiagnostics() {
+        if !this.HasOwnProp("diagnosticsWindow")
+            this.diagnosticsWindow := DiagnosticsWindow(this)
+        this.diagnosticsWindow.Show()
+    }
+
+    DiagnosticSummary() {
+        return "运行状态：" (!this.ready ? "未启动" : this.paused ? "已暂停" : "运行中") "`n"
+            . this.InputAvailability() "`n重喂偏好：" (this.settings.enableRefeed ? "启用" : "关闭")
+            . "；自动切换偏好：" (this.settings.enableAutoSwitch ? "启用" : "关闭")
+            . "`n快捷键：" SettingsModel.DisplayHotkey(this.settings.refeedHotkey) " / " SettingsModel.DisplayHotkey(this.settings.recoverHotkey)
+            . "`n记录仅在内存保存，连续相同结果合并；不读取当前文本或窗口标题。`n`n" this.logger.Recent()
     }
 
     RefreshTray() {

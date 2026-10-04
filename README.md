@@ -8,7 +8,7 @@ Windows + AutoHotkey v2 输入法辅助工具，面向搜狗拼音，微软拼�
 
 ## 当前状态
 
-P1 配置与常驻、P2 重喂/取回、P3 规则及 P4 自动切换 MVP 已实现。用户确认 smoke 中英文切换符合预期、取回正常、重喂多数正常；本轮修正四个重喂反馈点，真实桌面修正版及自动切换仍待复测/UAT。普通启动只提供配置/托盘，输入功能通过显式测试入口启用。
+P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 中英文切换符合预期、取回正常、重喂多数正常；修正版重喂、自动切换和设置交互仍待复测/UAT。普通启动提供设置/托盘/诊断，输入功能通过显式测试入口启用。
 
 直接在仓库主分支 `main` 开发和提交，不采用功能分支或 PR 流程。新项目见 [main](https://github.com/ziyumieming/Ime-2Chinese/tree/main)。
 
@@ -20,7 +20,7 @@ P1 配置与常驻、P2 重喂/取回、P3 规则及 P4 自动切换 MVP 已实�
 & 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe' /ErrorStdOut .\main.ahk --check
 ```
 
-双击 `main.ahk` 启动托盘程序；配置位于 `%AppData%\ImeAssist\settings.ini`。当前常驻版本不注入文本、不自动切换输入法。托盘选择“退出”可结束程序。
+双击 `main.ahk` 启动托盘程序；双击托盘图标或选择“设置”打开基础设置，选择“最近诊断”查看结果。配置位于 `%AppData%\ImeAssist\settings.ini`。当前普通入口不注入文本、不自动切换输入法。托盘选择“退出”可结束程序。
 
 开发检查：用 Python 运行 `tests/run-tests.py`；Python 仅供测试，运行主程序只需 AutoHotkey v2。真实输入法测试见 [测试方案](docs/testing-strategy.md)，可提前使用 `tests/ime-smoke.ahk`。
 
@@ -29,6 +29,7 @@ P1 配置与常驻、P2 重喂/取回、P3 规则及 P4 自动切换 MVP 已实�
 - [ROADMAP.md](ROADMAP.md)：阶段进度、已完成事项、验证和下一步。
 - [PLAN.md](PLAN.md)：完整需求、设计边界和验收标准。
 - [用户指南](docs/user-guide.md)：原型使用与当前限制。
+- [设置与诊断](docs/settings-and-diagnostics.md)：修改偏好、保留文件改动、结果查看。
 - [规则说明与示例](docs/rules.md)：文件顺序、Ignore 例外及稳定规则身份。
 - [架构说明](docs/architecture.md)：目录职责和实现顺序。
 - [手动验收](tests/manual-checklist.md)、[兼容记录](tests/compatibility-results.md)。

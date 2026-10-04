@@ -29,3 +29,5 @@ RefeedFeature 只负责流程和单条内存缓存，注入 contexts、keys、cl
 SelectionProbe 在复制前观察原生选区端点或 UIA TextPattern，未知时不复制；UIA 焦点元素补充同窗输入框检查。最后复制后及删除后连续 100ms 中文读回才允许发送；焦点/暂停条件可以取消模式确认和稳定等待。Chrome 提供者行为仍待 UAT。
 
 AutoSwitchFeature 仅在窗口进入、有效命中变化或明确恢复时请求一次；失败也记为已尝试，同规则标题刷新不纠正手动模式。InputCoordinator 让手动/自动动作互斥，手动结束在释放锁前记录当前匹配，重喂有破坏性尝试时保护原目标本次停留。PollScheduler 管理暂停、重载和退出。见 [全功能边界](auto-switch-mvp.md)。
+
+P5 SettingsModel 规范化可读热键和编辑字段，再按基线比较合并最新文件；SettingsWindow 保留草稿，失败不关闭窗口。App.SaveSettings 使用共享锁和同一 ApplyCandidate 路径，保持暂停及失败回退。DiagnosticsWindow 仅显示应用状态和 Logger 内存记录；关闭隐藏、退出销毁，不增加轮询计时器。Logger 连续重复合并，Notify 有界跨消息去重。见 [设置与诊断](settings-and-diagnostics.md)。

@@ -69,3 +69,5 @@ ROADMAP 分开记录“代码/自动测试完成”和“真实桌面待验收�
 P4 全功能入口为 `tests/features-mvp.ahk` / `main.ahk --test-all`，见 [全功能说明](auto-switch-mvp.md)。自动测试覆盖返回窗口、同规则刷新、不同规则同动作、失败不重试、重载、暂停/启停、候选保护、互斥及原生计时器取消。无复制选区探测通过隐藏自有 Edit 和 UIA 范围端点验证，没有操作用户应用。热键及首字符真实效果仍以复测为准。
 
 接口依据：[AHK 钩子热键](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/Hotkeys.htm)、[Alt 菜单抑制](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/lib/A_MenuMaskKey.htm)、[UIA 选区](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationtextpattern-getselection)。
+
+P5 增加设置模型、App 保存事务、诊断/通知和隐藏原生 GUI 检查。使用私有测试配置验证文件改动合并、同字段冲突、故障回退及控件值；不显示窗口或操作真实编辑器。10000 次模拟同窗检查验证无重复写入、记录和提示，不代替长时间 CPU/内存及真实 GUI 体验；这些项目仍在集中 UAT 清单。详见 [设置说明](settings-and-diagnostics.md)。
