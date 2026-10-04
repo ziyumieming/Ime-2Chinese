@@ -3,7 +3,6 @@
 class TrayMenu {
     __New(application) {
         this.application := application
-        this.refeedLabel := application.testMode ? "启用重喂（测试版）" : "启用重喂（需启动测试版）"
         A_TrayMenu.Delete()
         A_TrayMenu.Add("暂停", (*) => application.TogglePause())
         A_TrayMenu.Add()

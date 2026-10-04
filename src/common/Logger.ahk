@@ -68,7 +68,33 @@ class Logger {
     }
     Finish(operation, result) {
         operation.result := result.reason, operation.duration := A_TickCount - operation.started
+        if result.HasOwnProp("failedStage")
+            operation.failedStage := result.failedStage
         this.Stage(operation, "Finish", result)
+        length := this.entries.Length
+        if length > 1 && this.entries[length] = operation {
+            previous := this.entries[length - 1]
+            if this.SameOperation(previous, operation) {
+                operation.count := previous.count + 1, operation.firstAt := previous.firstAt
+                operation.firstId := previous.HasOwnProp("firstId") ? previous.firstId : previous.id
+                this.entries.RemoveAt(length - 1)
+                this.Notify()
+            }
+        }
+    }
+    SameOperation(first, last) {
+        if !first.HasOwnProp("id") || first.event != last.event || first.result != last.result || first.steps.Length != last.steps.Length
+            return false
+        for index, step in first.steps {
+            other := last.steps[index]
+            if step.name != other.name || step.fields.Count != other.fields.Count
+                return false
+            for key, value in step.fields {
+                if key != "operationId" && (!other.fields.Has(key) || other.fields[key] != value)
+                    return false
+            }
+        }
+        return true
     }
     Subscribe(callback) {
         id := ++this.listenerId
@@ -92,8 +118,12 @@ class Logger {
                 text .= "  首次：" entry.firstAt "；最近：" entry.at "`n"
             if entry.HasOwnProp("id") {
                 text .= "  操作 #" entry.id "；耗时 " entry.duration " ms`n"
+                if entry.HasOwnProp("firstId")
+                    text .= "  相同内容/目标的操作 #" entry.firstId "–#" entry.id "，保留最近一次步骤。`n"
+                if entry.HasOwnProp("failedStage")
+                    text .= "  停止阶段：" Logger.StageLabel(entry.failedStage) "；以下为观察结果，不能据此确定根因。`n"
                 for step in entry.steps {
-                    text .= "  +" step.elapsed " ms " step.name "`n"
+                    text .= "  +" step.elapsed " ms " Logger.StageLabel(step.name) " [" step.name "]`n"
                     for key, value in step.fields
                         text .= "    " key "=" StrReplace(StrReplace(value, "`r", "\r"), "`n", "\n") "`n"
                 }
@@ -112,8 +142,21 @@ class Logger {
             "Settings", "设置保存", "Refeed", "文本重喂", "Recover", "取回原文", "AutoSwitch", "自动切换", "Clipboard", "剪贴板")
         return labels.Has(event) ? labels[event] : event
     }
+    static StageLabel(stage) {
+        labels := Map("CaptureTarget", "捕获目标", "EditableCheck", "检查可编辑性", "ReleaseKeys", "等待触发键释放",
+            "LanguageCheck", "检查输入语言", "SelectionCheck", "检查选区", "ClipboardBegin", "备份剪贴板",
+            "CopySelection", "复制选区", "ValidateText", "校验选中文本", "RequestedMode", "请求中文模式",
+            "PrepareIme", "准备输入法", "VerifySelection", "再次核对选区", "ReadyBeforeDelete", "删除前等待中文稳定",
+            "SelectionBeforeDelete", "删除前检查选区", "DeleteAttempt", "缓存原文及准备删除", "DeleteSelection", "删除选区",
+            "ReadyAfterDelete", "删除后等待中文稳定", "SendLetters", "逐字发送", "SendOriginal", "取回原文",
+            "ClipboardCleanup", "清理剪贴板", "TargetGuard", "复核目标", "Exception", "接口异常", "Finish", "操作结果")
+        return labels.Has(stage) ? labels[stage] : stage
+    }
     static ResultLabel(result) {
         labels := Map("Ready", "已就绪", "Failed", "失败", "Applied", "已应用", "Rejected", "已拒绝，保留之前的配置",
+            "Started", "正在执行", "EditableUnknown", "无法确认可编辑性，已跳过", "ReadOnlyTarget", "只读位置，已跳过",
+            "PasswordTarget", "密码框，已跳过", "TargetDisabled", "输入框禁用，已跳过", "NonEditableTarget", "非文本输入位置，已跳过",
+            "TerminalUnsupported", "终端尚未兼容，已跳过",
             "Saved", "已保存", "Paused", "已暂停", "Resumed", "已恢复", "CandidatesReady", "已重喂，等待选择候选",
             "OriginalRecovered", "原文已取回", "NoCachedOriginal", "暂无原文缓存", "AlreadyCorrect", "已是目标模式",
             "Verified", "模式设置已确认", "NoSelection", "无选区，已跳过", "SelectionUnknown", "无法观察选区，已跳过",

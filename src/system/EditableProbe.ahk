@@ -7,7 +7,7 @@ class EditableProbe {
     Check(context) {
         try return this.driver.Read(context)
         catch as err
-            return {state: "Unknown", reason: "EditableUnknown", token: 0, error: err.Message}
+            return {state: "Unknown", reason: "EditableUnknown", token: 0, error: err.Message, line: err.Line, file: err.File}
     }
     IsCurrent(snapshot, context) {
         try return this.driver.IsCurrent(snapshot, context)
@@ -66,6 +66,11 @@ class NativeEditable extends NativeSelection {
             }
             result := this.Decide(enabled, password, readOnly, role)
             result.source := "UIA"
+            result.elementReference := Format("0x{:X}", element)
+            if IsSet(valueReadOnly) {
+                result.valueReadOnly := valueReadOnly, result.textReadOnly := textReadOnly
+                result.valueReadError := this.valueReadError, result.textReadError := this.textReadError
+            }
             if result.state = "Editable"
                 result.token := SelectionElement(element), element := 0
             return result
@@ -82,12 +87,14 @@ class NativeEditable extends NativeSelection {
     }
     ValueReadOnly(element) {
         pattern := 0
+        this.valueReadError := ""
         try {
             pattern := this.Pattern(element, 10002, "{A94CD8B1-0844-4CD6-9D2D-640537AB39E9}")
             readOnly := 0
             ComCall(5, pattern, "Int*", &readOnly)
             return !!readOnly
-        } catch {
+        } catch as err {
+            this.valueReadError := err.Message
             return "Unknown"
         } finally {
             if pattern
@@ -96,6 +103,7 @@ class NativeEditable extends NativeSelection {
     }
     TextReadOnly(element) {
         pattern := 0, ranges := 0, textRange := 0, value := Buffer(24, 0)
+        this.textReadError := ""
         try {
             pattern := this.Pattern(element, 10014, "{32EBA289-3583-42C9-9C59-3B6D9A1E9B6A}")
             ComCall(5, pattern, "Ptr*", &ranges)
@@ -105,11 +113,18 @@ class NativeEditable extends NativeSelection {
                 ComCall(4, ranges, "Int", 0, "Ptr*", &textRange)
             else if count = 0
                 ComCall(7, pattern, "Ptr*", &textRange) ; DocumentRange, no GetText.
-            else
+            else {
+                this.textReadError := "MultipleRanges"
                 return "Unknown"
+            }
             ComCall(9, textRange, "Int", 40015, "Ptr", value) ; IsReadOnly
-            return NumGet(value, 0, "UShort") = 11 ? !!NumGet(value, 8, "Short") : "Unknown"
-        } catch {
+            if NumGet(value, 0, "UShort") != 11 {
+                this.textReadError := "UnsupportedOrMixedAttribute"
+                return "Unknown"
+            }
+            return !!NumGet(value, 8, "Short")
+        } catch as err {
+            this.textReadError := err.Message
             return "Unknown"
         } finally {
             DllCall("oleaut32\VariantClear", "Ptr", value)

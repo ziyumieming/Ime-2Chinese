@@ -58,6 +58,14 @@ try {
         panel.Close()
     }
     TestAssert.Equal(history.listeners.Count, 0, "close removes observers")
+    history := Logger()
+    loop 2 {
+        operation := history.Begin("Refeed")
+        history.Stage(operation, "EditableCheck", {reason: "ReadOnlyTarget"})
+        history.Finish(operation, {reason: "ReadOnlyTarget", failedStage: "EditableCheck", operationId: operation.id})
+    }
+    TestAssert.Equal(history.entries.Length, 1, "identical blocked operations merge as whole groups")
+    TestAssert.Equal(history.entries[1].count, 2, "repeat count retained with first and last operation IDs")
     TestAssert.Finish("operation diagnostics, partial failure, bounds, callback refresh and UTF-8 export")
     ExitApp(0)
 } catch as err {

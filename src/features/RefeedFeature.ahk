@@ -49,12 +49,14 @@ class RefeedFeature {
             this.ErrorTrace(err)
             outcome.reason := "SystemError"
         } finally {
+            if !outcome.ok
+                outcome.failedStage := this.traceStage
             try {
                 cleanup := this.adapters.clipboard.End()
                 this.Trace("ClipboardCleanup", cleanup)
                 outcome.clipboardReason := cleanup.reason
             } catch as err {
-                this.ErrorTrace(err)
+                this.ErrorTrace(err, "ClipboardCleanup")
                 outcome.clipboardReason := "ClipboardRestoreFailed"
             }
             this.Finish(outcome, context)
@@ -67,6 +69,7 @@ class RefeedFeature {
         if !copied.ok
             return {ok: false, reason: copied.reason, changed: false}
         validated := TextRules.Validate(copied.text, settings.maxRefeedLength)
+        this.traceStage := "ValidateText"
         this.Trace("ValidateText", {ok: validated.ok, reason: validated.reason, selectionLength: StrLen(copied.text)})
         if !validated.ok
             return {ok: false, reason: validated.reason, changed: false}
@@ -84,12 +87,14 @@ class RefeedFeature {
             return {ok: false, reason: verified.reason, changed: false}
         if verified.text != validated.original
             return {ok: false, reason: "SelectionChanged", changed: false}
-        if !this.CanContinue(context) || !this.adapters.clipboard.OwnsCurrent()
+        if !this.CanContinue(context)
             return {ok: false, reason: "TargetChanged", changed: false}
+        if !this.adapters.clipboard.OwnsCurrent()
+            return {ok: false, reason: "ClipboardChanged", changed: false}
         ready := this.Observe("ReadyBeforeDelete", () => this.adapters.ime.ReadyForInput(context, () => this.CanContinue(context)))
         if !ready.ok
             return {ok: false, reason: ready.reason, changed: false}
-        if this.adapters.selection.Check(context).state != "Selected"
+        if this.Observe("SelectionBeforeDelete", () => this.adapters.selection.Check(context)).state != "Selected"
             return {ok: false, reason: "SelectionChanged", changed: false}
         if !this.adapters.clipboard.OwnsCurrent()
             return {ok: false, reason: "ClipboardChanged", changed: false}
@@ -150,6 +155,8 @@ class RefeedFeature {
             this.ErrorTrace(err)
             outcome := {ok: false, reason: "RecoverFailed"}
         } finally {
+            if !outcome.ok
+                outcome.failedStage := this.traceStage
             this.Finish(outcome, context)
         }
         return outcome
@@ -175,9 +182,15 @@ class RefeedFeature {
         }
     }
 
-    CanContinue(context) => this.isEnabled.Call() && this.adapters.contexts.IsCurrent(context)
-        && (!this.HasOwnProp("activeEditable") || this.adapters.editable.IsCurrent(this.activeEditable, context))
-        && (!this.HasOwnProp("activeSelection") || this.adapters.selection.IsCurrent(this.activeSelection))
+    CanContinue(context) {
+        reason := !this.isEnabled.Call() ? "DisabledOrPaused"
+            : !this.adapters.contexts.IsCurrent(context) ? "WindowFocusChanged"
+            : this.HasOwnProp("activeEditable") && !this.adapters.editable.IsCurrent(this.activeEditable, context) ? "EditableElementChanged"
+            : this.HasOwnProp("activeSelection") && !this.adapters.selection.IsCurrent(this.activeSelection) ? "SelectionElementChanged" : ""
+        if reason != ""
+            this.Trace("TargetGuard", {reason: reason})
+        return reason = ""
+    }
 
     BeginTrace(event) {
         if this.adapters.HasOwnProp("logger")
@@ -194,6 +207,6 @@ class RefeedFeature {
         this.Trace(stage, IsObject(result) ? result : {value: result})
         return result
     }
-    ErrorTrace(err) => this.Trace("Exception", {stage: this.HasOwnProp("traceStage") ? this.traceStage : "Unknown",
+    ErrorTrace(err, stage := "") => this.Trace("Exception", {stage: stage != "" ? stage : this.HasOwnProp("traceStage") ? this.traceStage : "Unknown",
         error: err.Message, file: err.File, line: err.Line, extra: err.Extra})
 }

@@ -15,7 +15,7 @@ class DiagnosticsWindow {
         this.clearButton := this.window.AddButton("x+8 w120", "清空记录")
         this.clearButton.OnEvent("Click", (*) => this.Clear())
         this.exportButton := this.window.AddButton("x+8 w110", "导出文件")
-        this.exportButton.OnEvent("Click", (*) => this.Export())
+        this.exportButton.OnEvent("Click", (*) => this.ExportInteractive())
         this.window.OnEvent("Close", (*) => this.Hide())
         this.window.OnEvent("Escape", (*) => this.Hide())
         this.window.OnEvent("Size", (window, state, width, height) => this.Resize(state, width, height))
@@ -64,6 +64,11 @@ class DiagnosticsWindow {
         try outputFile.Write(snapshot)
         finally outputFile.Close()
         return true
+    }
+    ExportInteractive() {
+        try this.Export()
+        catch as err
+            MsgBox(err.Message, "诊断导出失败")
     }
     Refresh() => this.text.Value := this.application.DiagnosticSummary()
     Clear() {

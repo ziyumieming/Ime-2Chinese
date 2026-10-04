@@ -10,6 +10,9 @@ class HotkeyRecorder {
         this.foregroundReader := IsSet(foreground) ? foreground : () => DllCall("GetForegroundWindow", "Ptr")
     }
     Start() {
+        if this.active
+            this.Stop()
+        this.pending := "", this.keyName := ""
         this.hook := InputHook("L0 I1")
         this.hook.KeyOpt("{All}", "NS")
         this.hook.OnKeyDown := ObjBindMethod(this, "KeyDown")

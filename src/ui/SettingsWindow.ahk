@@ -35,13 +35,13 @@ class SettingsWindow {
         OnMessage(0x6, this.activationHandler)
         this.Fill(this.baseline)
     }
-    Show() {
+    Show(options := "") {
         if !DllCall("IsWindowVisible", "Ptr", this.window.Hwnd) {
             try this.Fill(this.application.store.Load(false))
             catch as err
                 this.status.Text := "读取设置失败：" err.Message
         }
-        this.window.Show()
+        this.window.Show(options)
     }
     Fill(settings) {
         values := SettingsModel.Values(settings)
@@ -100,21 +100,24 @@ class SettingsWindow {
         if this.recordingField = ""
             return
         this.controls[this.recordingField].Value := SettingsModel.DisplayHotkey(value)
-        this.EndRecording()
-        this.status.Text := "快捷键已录制；点击保存并应用后生效。"
+        if this.EndRecording()
+            this.status.Text := "快捷键已录制；点击保存并应用后生效。"
     }
     KeyCancel() {
-        this.EndRecording()
-        this.status.Text := "已取消录制，保留原快捷键。"
+        if this.EndRecording()
+            this.status.Text := "已取消录制，保留原快捷键。"
     }
     EndRecording() {
         if this.recordingField = ""
-            return
+            return true
         this.recordButtons[this.recordingField].Text := "录制"
         this.recordingField := "", this.saveButton.Enabled := true
         try this.application.EndHotkeyCapture()
-        catch as err
+        catch as err {
             this.status.Text := "恢复快捷键失败，请重启程序：" err.Message
+            return false
+        }
+        return true
     }
     Activation(wParam, lParam, message, hwnd) {
         if hwnd = this.window.Hwnd && (wParam & 0xFFFF) = 0 && this.recordingField != ""

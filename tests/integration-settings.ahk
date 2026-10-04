@@ -43,7 +43,7 @@ RunTests() {
         pending := application.store.Load(false), pending.sendIntervalMs := 45, application.store.Save(pending)
         TestAssert.Equal(panel.Save().ok, false, "conflicting field rejected through form")
         TestAssert.Equal(panel.controls["sendIntervalMs"].Value, "40", "conflicting draft retained")
-        panel.Hide(), panel.Show(), panel.window.Hide()
+        panel.Hide(), panel.Show("Hide")
         TestAssert.Equal(panel.controls["sendIntervalMs"].Value, "45", "reopening settings replaces draft")
         TestAssert.Equal(panel.controls["sendIntervalMs"].Value, "45", "current file reloaded")
         TestAssert.Equal(application.settings.sendIntervalMs, 31, "read alone does not apply")
