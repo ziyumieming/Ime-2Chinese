@@ -34,6 +34,10 @@ class ImeController {
         }
         open := this.Message(status.imeHwnd, 5)
         conversion := this.Message(status.imeHwnd, 1)
+        status.openReadError := open.HasOwnProp("error") ? open.error : 0
+        status.conversionReadError := conversion.HasOwnProp("error") ? conversion.error : 0
+        status.openStatus := open.ok ? open.value : -1
+        status.conversionMode := conversion.ok ? conversion.value : -1
         if !open.ok || !conversion.ok {
             status.reason := "ImeQueryFailed"
             return status
@@ -67,7 +71,7 @@ class ImeController {
         if mode = "Chinese" && !(before.conversionMode & 1) {
             sent := this.Message(before.imeHwnd, 2, before.conversionMode | 1)
             if !sent.ok
-                return {ok: false, reason: "ImeWriteFailed"}
+                return {ok: false, reason: "ImeWriteFailed", beforeStatus: before, error: sent.HasOwnProp("error") ? sent.error : 0}
         }
         desiredOpen := mode = "Chinese" ? 1 : 0
         if before.openStatus != desiredOpen {
@@ -75,7 +79,7 @@ class ImeController {
                 return {ok: false, reason: "FocusChanged"}
             opened := this.Message(before.imeHwnd, 6, desiredOpen)
             if !opened.ok
-                return {ok: false, reason: desiredOpen ? "ImeOpenFailed" : "ImeCloseFailed"}
+                return {ok: false, reason: desiredOpen ? "ImeOpenFailed" : "ImeCloseFailed", beforeStatus: before, error: opened.HasOwnProp("error") ? opened.error : 0}
         }
         deadline := this.Now() + this.verificationTimeoutMs
         loop {
@@ -83,9 +87,9 @@ class ImeController {
                 return {ok: false, reason: "FocusChanged"}
             after := this.GetStatus(hwnd)
             if after.mode = mode
-                return {ok: true, reason: "Verified", status: after}
+                return {ok: true, reason: "Verified", status: after, beforeStatus: before}
             if this.Now() >= deadline
-                return {ok: false, reason: "VerificationFailed", status: after}
+                return {ok: false, reason: "VerificationFailed", status: after, beforeStatus: before}
             this.Wait(20)
         }
     }

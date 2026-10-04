@@ -67,6 +67,7 @@ class App {
 
     AttachRefeed(adapters) {
         adapters.gate := this.gate
+        adapters.logger := this.logger
         this.refeed := RefeedFeature(() => this.settings, adapters,
             () => this.ready && !this.paused && this.settings.enableRefeed)
         this.handlers["refeed"] := (*) => this.RunInputAction(false)
@@ -88,8 +89,9 @@ class App {
 
     RunInputAction(recover) {
         result := recover ? this.refeed.RecoverLast() : this.refeed.ConvertSelection()
-        this.logger.Record(recover ? "Recover" : "Refeed", result.reason)
-        if result.reason = "NoSelection" || result.reason = "IgnoredOtherLanguage" || result.reason = "SelectionUnknown"
+        if !result.HasOwnProp("operationId")
+            this.logger.Record(recover ? "Recover" : "Refeed", result.reason)
+        if RegExMatch(result.reason, "^(NoSelection|IgnoredOtherLanguage|SelectionUnknown|EditableUnknown|ReadOnlyTarget|PasswordTarget|TargetDisabled|NonEditableTarget|TerminalUnsupported)$")
             return result
         messages := Map("CandidatesReady", "重喂完成，请自行选择候选。", "OriginalRecovered", "原文已取回。",
             "NoSelection", "没有取得选区。", "TextTooLong", "选区超过长度上限。",
@@ -298,7 +300,8 @@ class App {
             . this.InputAvailability() "`n重喂偏好：" (this.settings.enableRefeed ? "启用" : "关闭")
             . "；历史自动切换偏好（已冻结）：" (this.settings.enableAutoSwitch ? "启用" : "关闭")
             . "`n快捷键：" SettingsModel.DisplayHotkey(this.settings.refeedHotkey) " / " SettingsModel.DisplayHotkey(this.settings.recoverHotkey)
-            . "`n记录仅在内存保存，连续相同结果合并；不读取当前文本或窗口标题。`n`n" this.logger.Recent()
+            . "`n版本：源码开发版；AutoHotkey " A_AhkVersion
+            . "`n记录保存在内存；含操作取得的选中文本和完整窗口标题。可主动导出；不额外复制或读取整框内容。`n`n" this.logger.Recent()
     }
 
     RefreshTray() {

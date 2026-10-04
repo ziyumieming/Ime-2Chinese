@@ -21,6 +21,7 @@ class TextSender {
 
     SendLetters(letters, intervalMs, canContinue) {
         sent := 0
+        try {
         for letter in StrSplit(letters) {
             if !canContinue.Call()
                 return {ok: false, reason: "SendingStopped", sent: sent}
@@ -29,6 +30,9 @@ class TextSender {
             this.driver.Wait(intervalMs)
         }
         return {ok: true, reason: "CandidatesReady", sent: sent}
+        } catch as err {
+            return {ok: false, reason: "SendFailed", sent: sent, error: err.Message, line: err.Line, file: err.File}
+        }
     }
 
     SendOriginal(original, canContinue) {

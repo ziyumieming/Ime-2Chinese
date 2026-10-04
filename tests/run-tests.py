@@ -38,6 +38,7 @@ def main():
         ('tests/unit-settings.ahk', [], 'PASS 29 assertions'),
         ('tests/unit-app-settings.ahk', [], 'PASS 40 assertions'),
         ('tests/unit-diagnostics.ahk', [], 'PASS 19 assertions'),
+        ('tests/unit-operation-diagnostics.ahk', [], 'PASS 20 assertions'),
         ('tests/integration-settings.ahk', [], 'PASS 24 assertions'),
     ]
     failures = 0

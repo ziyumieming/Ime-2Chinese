@@ -97,7 +97,7 @@ RunTests() {
         TestAssert.Equal(application.hotkeys.active.Length, 2, "MVP owns configured keys")
         TestAssert.Equal(application.RunInputAction(false).ok, true, "app dispatches refeed")
         TestAssert.Equal(output.letters, "nihao", "app dispatch reaches sender")
-        TestAssert.Equal(InStr(application.logger.Recent(), "ni hao"), 0, "app diagnostics contain no original")
+        TestAssert.Equal(InStr(application.logger.Recent(), "selectedText=ni hao") > 0, true, "diagnostics retain authorized selected text")
         application.TogglePause()
         TestAssert.Equal(application.RunInputAction(true).reason, "Paused", "app pause stops recovery")
         application.TogglePause()

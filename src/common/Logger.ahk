@@ -1,11 +1,12 @@
 #Requires AutoHotkey v2.0
 
-; Accept only code identifiers, never input content, paths or window titles.
+; Bounded operation snapshots. Content comes only from already-authorized reads.
 class Logger {
     __New(limit := 30, clock := unset) {
         if limit < 1
             throw ValueError("Diagnostic capacity must be positive")
         this.limit := limit, this.entries := []
+        this.nextId := 0, this.listeners := Map(), this.listenerId := 0
         this.clock := IsSet(clock) ? clock : () => FormatTime(, "yyyy-MM-dd HH:mm:ss")
     }
     Record(event, result) {
@@ -14,23 +15,98 @@ class Logger {
         timestamp := this.clock.Call()
         if this.entries.Length {
             previous := this.entries[this.entries.Length]
-            if previous.event = event && previous.result = result {
+            if previous.event = event && previous.result = result && !previous.HasOwnProp("id") {
                 previous.count += 1, previous.at := timestamp
+                this.Notify()
                 return
             }
         }
-        this.entries.Push({at: timestamp, event: event, result: result, count: 1})
+        this.entries.Push({at: timestamp, firstAt: timestamp, event: event, result: result, count: 1})
         while this.entries.Length > this.limit
             this.entries.RemoveAt(1)
+        this.Notify()
+    }
+    Begin(event) {
+        operation := {id: ++this.nextId, at: this.clock.Call(), event: event, result: "Started", count: 1,
+            started: A_TickCount, steps: [], dropped: 0, duration: 0}
+        operation.firstAt := operation.at
+        this.entries.Push(operation)
+        while this.entries.Length > this.limit
+            this.entries.RemoveAt(1)
+        this.Notify()
+        return operation
+    }
+    Stage(operation, name, data := unset) {
+        fields := Map()
+        if IsSet(data)
+            this.Fields(fields, data)
+        operation.steps.Push({name: name, elapsed: A_TickCount - operation.started, fields: fields})
+        if operation.steps.Length > 64
+            operation.steps.RemoveAt(1), operation.dropped += 1
+        operation.at := this.clock.Call()
+        this.Notify()
+    }
+    Fields(fields, data, prefix := "") {
+        if !IsObject(data)
+            return
+        for name, value in data.OwnProps() {
+            if name = "token" || name = "ptr"
+                continue
+            key := prefix name
+            if IsObject(value) {
+                if name = "status" || name = "beforeStatus"
+                    this.Fields(fields, value, key ".")
+                continue
+            }
+            if fields.Count >= 40
+                break
+            key := name = "text" ? "selectedText" : key
+            cap := InStr(StrLower(key), "title") ? 32768 : key = "selectedText" ? 4096 : 2048
+            text := String(value)
+            fields[key] := StrLen(text) > cap ? SubStr(text, 1, cap) " [已截断，原长度 " StrLen(text) "]" : text
+        }
+    }
+    Finish(operation, result) {
+        operation.result := result.reason, operation.duration := A_TickCount - operation.started
+        this.Stage(operation, "Finish", result)
+    }
+    Subscribe(callback) {
+        id := ++this.listenerId
+        this.listeners[id] := callback
+        return id
+    }
+    Unsubscribe(id) {
+        if this.listeners.Has(id)
+            this.listeners.Delete(id)
+    }
+    Notify() {
+        for id, callback in this.listeners.Clone()
+            try callback.Call()
     }
     Recent() {
         text := ""
-        for entry in this.entries
+        for entry in this.entries {
             text .= entry.at "  " Logger.EventLabel(entry.event) "：" Logger.ResultLabel(entry.result)
                 . (entry.count > 1 ? "（连续 " entry.count " 次）" : "") "`n"
+            if entry.count > 1
+                text .= "  首次：" entry.firstAt "；最近：" entry.at "`n"
+            if entry.HasOwnProp("id") {
+                text .= "  操作 #" entry.id "；耗时 " entry.duration " ms`n"
+                for step in entry.steps {
+                    text .= "  +" step.elapsed " ms " step.name "`n"
+                    for key, value in step.fields
+                        text .= "    " key "=" StrReplace(StrReplace(value, "`r", "\r"), "`n", "\n") "`n"
+                }
+                if entry.dropped
+                    text .= "  [省略较早的 " entry.dropped " 个步骤]`n"
+            }
+        }
         return text != "" ? RTrim(text, "`n") : "暂无诊断。"
     }
-    Clear() => this.entries := []
+    Clear() {
+        this.entries := []
+        this.Notify()
+    }
     static EventLabel(event) {
         labels := Map("Startup", "启动", "Reload", "配置重载", "Pause", "暂停状态", "FeatureToggle", "功能开关",
             "Settings", "设置保存", "Refeed", "文本重喂", "Recover", "取回原文", "AutoSwitch", "自动切换", "Clipboard", "剪贴板")

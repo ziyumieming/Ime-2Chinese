@@ -57,13 +57,14 @@ class ClipboardService {
         if !this.driver.Wait(timeoutMs)
             return {ok: false, reason: "CopyTimeout"}
         sequence := this.driver.Sequence()
-        if !sequence || sequence = this.ownedSequence || !this.driver.OwnerMatches(context)
-            return {ok: false, reason: "UnexpectedClipboardOwner"}
+        ownerMatches := !!this.driver.OwnerMatches(context)
+        if !sequence || sequence = this.ownedSequence || !ownerMatches
+            return {ok: false, reason: "UnexpectedClipboardOwner", sequence: sequence, ownerMatches: ownerMatches}
         text := this.driver.Read()
         if this.driver.Sequence() != sequence
             return {ok: false, reason: "ClipboardChanged"}
         this.ownedSequence := sequence
-        return {ok: true, reason: "Copied", text: text}
+        return {ok: true, reason: "Copied", text: text, sequence: sequence, ownerMatches: ownerMatches}
     }
 
     End() {

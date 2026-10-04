@@ -118,7 +118,7 @@ RunTests() {
         contexts.identity := 3, timer.Fire()
         TestAssert.Equal(application.gate.owner, "", "auto completion releases gate")
         TestAssert.Equal(clipDriver.copies, 2, "busy manual attempt sends no additional copy")
-        TestAssert.Equal(InStr(application.logger.Recent(), "Private title"), 0, "auto diagnostic excludes title")
+        TestAssert.Equal(InStr(application.logger.Recent(), "Private title") > 0, true, "manual operation records target title")
         application.Stop(), application.Stop()
         TestAssert.Equal(timer.interval, 0, "exit cancels polling idempotently")
 
