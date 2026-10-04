@@ -7,3 +7,5 @@ P1 HotkeyBindings 提供绑定、失败回退、暂停与退出清理。P2 Clipb
 P3 WindowContext 增加 processKnown/titleKnown，区别读取失败与合法空标题；焦点可靠性仍独立以 focusKnown 表示。无效或已销毁窗口不伪造上下文；隐藏自有窗口的进程、标题、类名读取已有自动验证，未据此扩大浏览器输入框焦点能力。
 
 本轮 SelectionProbe 补充原生选区端点、UIA TextPattern 和焦点元素检查，未知选区不复制，UIA 设置连接/事务超时。ImeController 根据目标中文布局及 IMM 模式操作，线程 profileHint 仅诊断；首字符稳定等待可被焦点/暂停取消。NativeHotkeys 使用键盘钩子及 Alt 菜单抑制，PollScheduler 供 P4 轮询。真实修正版待复测。
+
+EditableProbe 检查 Edit/RichEdit 或 UIA 只读、密码、启用及文本角色；未知时跳过，并保留焦点元素复核。HotkeyRecorder 只在设置录制期间启用 InputHook，不采集文本。StartupService 在当前用户启动目录管理自有 .lnk，支持快照回滚及同名文件归属检查；自动测试仅使用私有目录。普通及重喂入口不新增轮询，终端明确未兼容。

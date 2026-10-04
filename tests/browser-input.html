@@ -2,16 +2,22 @@
 <html lang="zh-CN">
 <meta charset="utf-8">
 <title>IME compatibility fixture</title>
-<style>body{font:18px system-ui;max-width:900px;margin:36px auto}input,textarea{display:block;width:90%;font:24px system-ui;margin:12px 0;padding:12px}.events{white-space:pre-wrap;font:14px monospace}</style>
+<style>body{font:18px system-ui;max-width:900px;margin:36px auto}input,textarea,[contenteditable]{display:block;width:90%;font:24px system-ui;margin:12px 0;padding:12px}[contenteditable]{border:1px solid #777;min-height:60px}.events{white-space:pre-wrap;font:14px monospace}</style>
 <h1>IME 本地兼容测试</h1>
 <p>仅使用人工样例。页面不联网、不发送表单，不读取系统剪贴板。</p>
 <label>输入框 A<input id="input-a" autocomplete="off"></label>
 <label>输入框 B<textarea id="input-b" rows="4"></textarea></label>
+<p>可编辑内容（测试非 ValuePattern 路径）：</p>
+<div id="editable" contenteditable="true">ni hao</div>
+<p id="readonly-body">网页正文 ni hao：选中后应跳过，不复制或切换。</p>
+<label>只读框<input id="readonly" readonly value="ni hao"></label>
+<label>禁用框<input id="disabled" disabled value="ni hao"></label>
+<label>密码框（只填人工样例）<input id="password" type="password" autocomplete="off"></label>
 <p id="focus">尚未聚焦</p>
 <pre class="events" id="events"></pre>
 <script>
 const events=[];
-for(const element of document.querySelectorAll('input,textarea')){
+for(const element of document.querySelectorAll('input,textarea,[contenteditable="true"]')){
   element.addEventListener('focus',()=>document.querySelector('#focus').textContent='焦点：'+element.id);
   for(const type of ['compositionstart','compositionend','input']){
     element.addEventListener(type,event=>{

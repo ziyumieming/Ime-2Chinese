@@ -8,7 +8,7 @@ Windows + AutoHotkey v2 输入法辅助工具，面向搜狗拼音，微软拼�
 
 ## 当前状态
 
-P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 中英文切换、取回及设置/诊断窗口基础交互可用；重喂仍有可编辑位置判断缺口。当前暂停打包，窗口自动切换冻结；下一步完成可编辑位置检查与诊断改造，见 [Issue #4 决策及待办](docs/issue-4-decisions.md)。普通启动提供设置/托盘/诊断，重喂通过显式测试入口启用，按键后检查，不新增轮询。
+P1–P5 MVP 已实现。Issue #4 的可编辑位置检查、操作诊断、实时更新/导出、快捷键录制和登录后自启已完成代码及自动验证，浏览器/记事本真实体验待 UAT。用户此前确认 smoke 中英文切换、取回及设置/诊断基础交互可用。当前暂停打包，窗口自动切换冻结，见 [Issue #4 决策及验收](docs/issue-4-decisions.md)。普通启动提供设置/托盘/诊断，重喂通过显式测试入口启用，按键后检查，不新增轮询。
 
 直接在仓库主分支 `main` 开发和提交，不采用功能分支或 PR 流程。新项目见 [main](https://github.com/ziyumieming/Ime-2Chinese/tree/main)。
 
@@ -20,7 +20,7 @@ P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 
 & 'C:\Program Files\AutoHotkey\v2\AutoHotkey64.exe' /ErrorStdOut .\main.ahk --check
 ```
 
-双击 `main.ahk` 启动托盘程序；双击托盘图标或选择“设置”打开基础设置，选择“最近诊断”查看结果。配置位于 `%AppData%\ImeAssist\settings.ini`。当前普通入口不注入文本、不自动切换输入法。托盘选择“退出”可结束程序。
+双击 `main.ahk` 启动托盘程序；双击托盘图标或选择“设置”修改偏好，点击“录制”直接按快捷键，可勾选当前用户登录后自动启动。设置是唯一配置修改入口。选择“最近诊断”查看实时操作过程或导出文本快照。配置位于 `%AppData%\ImeAssist\settings.ini`。当前普通入口不注入文本、不自动切换输入法。托盘选择“退出”可结束程序。
 
 开发检查：用 Python 运行 `tests/run-tests.py`；Python 仅供测试，运行主程序只需 AutoHotkey v2。真实输入法测试见 [测试方案](docs/testing-strategy.md)，可提前使用 `tests/ime-smoke.ahk`。
 

@@ -1,6 +1,6 @@
 # 测试方案
 
-更新：2026-10-04。目标：自动检查覆盖日常改动，真实桌面验证集中进行，不要求每个开发步骤都操作桌面。
+更新：2026-10-05。目标：自动检查覆盖日常改动，真实桌面验证集中进行，不要求每个开发步骤都操作桌面。
 
 最新范围以 [Issue #4 决策](issue-4-decisions.md) 为准：打包暂缓，自动切换后续开发/桌面验收冻结，保留既有自动回归。当前新增验收集中于重喂/取回的可编辑位置检查与诊断增强；下面的 P3/P4 实测要求仅保留历史参考。
 
@@ -73,3 +73,7 @@ P4 全功能入口为 `tests/features-mvp.ahk` / `main.ahk --test-all`，见 [�
 接口依据：[AHK 钩子热键](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/Hotkeys.htm)、[Alt 菜单抑制](https://github.com/AutoHotkey/AutoHotkeyDocs/blob/v2/docs/lib/A_MenuMaskKey.htm)、[UIA 选区](https://learn.microsoft.com/en-us/windows/win32/api/uiautomationclient/nf-uiautomationclient-iuiautomationtextpattern-getselection)。
 
 P5 增加设置模型、App 保存事务、诊断/通知和隐藏原生 GUI 检查。使用私有测试配置验证文件改动合并、同字段冲突、故障回退及控件值；不显示窗口或操作真实编辑器。10000 次模拟同窗检查验证无重复写入、记录和提示，不代替长时间 CPU/内存及真实 GUI 体验；这些项目仍在集中 UAT 清单。详见 [设置说明](settings-and-diagnostics.md)。
+
+Issue #4 已增加三组检查：可编辑性 41、操作诊断 22、录制/自启 30 项断言。可编辑性使用自有隐藏 Edit/UIA 元数据及模拟拒绝/变更目标；诊断验证真实窗口消息更新、部分发送异常、容量及 UTF-8 导出读回；录制启动实际 InputHook、注入事件验证按下/松开与取消，不向桌面发送键；自启创建真实 .lnk 于私有任务目录，验证目标/参数、启停及失败回滚，不修改真实 Startup 文件夹。完整 28 项检查、0 失败、645 项案例/断言。
+
+后续在 `tests/browser-input.html` 一次检查单行、多行、contenteditable、正文、只读、禁用及密码框；再在记事本重喂/取回，并试用录制与诊断导出。自启登录体验可等到下一次正常登录或集中 UAT，无需立即重启。cmd/Windows Terminal 当前明确未兼容，不作为本轮通过标准；详见 [Issue #4 实施](issue-4-decisions.md)。
