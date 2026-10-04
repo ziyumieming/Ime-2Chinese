@@ -65,7 +65,8 @@ class ConfigStore {
             fields := sections[section]
             switch StrLower(section) {
                 case "general":
-                    ConfigStore.CheckKeys(fields, ["EnableRefeed", "EnableAutoSwitch", "RefeedHotkey", "RecoverHotkey", "SendIntervalMs", "MaxRefeedLength", "CopyTimeoutMs"])
+                    ConfigStore.CheckKeys(fields, ["EnableRefeed", "EnableAutoSwitch", "StartWithWindows", "RefeedHotkey", "RecoverHotkey", "SendIntervalMs", "MaxRefeedLength", "CopyTimeoutMs"])
+                    settings.startWithWindows := ConfigStore.Number(fields, "StartWithWindows", 0, 0, 1)
                     settings.enableRefeed := ConfigStore.Number(fields, "EnableRefeed", 1, 0, 1)
                     settings.enableAutoSwitch := ConfigStore.Number(fields, "EnableAutoSwitch", 1, 0, 1)
                     settings.refeedHotkey := ConfigStore.Value(fields, "RefeedHotkey", "!z")
@@ -127,6 +128,7 @@ class ConfigStore {
     static Serialize(settings) {
         text := "; Ime-2Chinese configuration. Rules are matched in file order.`n"
             . "[General]`nEnableRefeed=" (!!settings.enableRefeed) "`nEnableAutoSwitch=" (!!settings.enableAutoSwitch)
+            . "`nStartWithWindows=" (!!settings.startWithWindows)
             . "`nRefeedHotkey=" settings.refeedHotkey "`nRecoverHotkey=" settings.recoverHotkey
             . "`nSendIntervalMs=" settings.sendIntervalMs "`nMaxRefeedLength=" settings.maxRefeedLength
             . "`nCopyTimeoutMs=" settings.copyTimeoutMs "`n`n[Ime]`nRefeedTarget=" settings.refeedTarget

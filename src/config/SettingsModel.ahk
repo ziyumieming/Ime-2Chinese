@@ -5,9 +5,10 @@
 
 ; Only editable preferences are patched into the latest valid configuration.
 class SettingsModel {
-    static Fields() => ["enableRefeed", "enableAutoSwitch", "refeedHotkey", "recoverHotkey",
+    static Fields() => ["enableRefeed", "enableAutoSwitch", "startWithWindows", "refeedHotkey", "recoverHotkey",
         "sendIntervalMs", "maxRefeedLength", "copyTimeoutMs", "pollIntervalMs"]
     static Labels() => Map("enableRefeed", "重喂开关", "enableAutoSwitch", "自动切换开关",
+        "startWithWindows", "开机自动启动",
         "refeedHotkey", "重喂快捷键", "recoverHotkey", "取回原文快捷键", "sendIntervalMs", "发送间隔",
         "maxRefeedLength", "长度上限", "copyTimeoutMs", "复制等待", "pollIntervalMs", "窗口检查间隔")
     static Clone(settings) => ConfigStore.Parse(ConfigStore.Serialize(settings))
@@ -48,7 +49,7 @@ class SettingsModel {
             if !values.HasOwnProp(name)
                 throw ValueError("设置缺少必要字段。")
         }
-        for name in ["enableRefeed", "enableAutoSwitch"] {
+        for name in ["enableRefeed", "enableAutoSwitch", "startWithWindows"] {
             if values.%name% != 0 && values.%name% != 1
                 throw ValueError("功能开关须为启用或关闭。")
             candidate.%name% := Integer(values.%name%)
@@ -70,7 +71,7 @@ class SettingsModel {
             if wanted.%name% = baseline.%name%
                 continue
             if latest.%name% != baseline.%name% && latest.%name% != wanted.%name%
-                throw ValueError(this.Labels()[name] "已在配置文件中修改，请重新读取设置后再保存。")
+                throw ValueError(this.Labels()[name] "已在配置文件中修改，请关闭并重新打开设置后再保存。")
             candidate.%name% := wanted.%name%, changes += 1
         }
         return {settings: this.Clone(candidate), changes: changes}

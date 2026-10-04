@@ -20,17 +20,21 @@
 #Include config\SettingsModel.ahk
 #Include ui\SettingsWindow.ahk
 #Include ui\DiagnosticsWindow.ahk
+#Include system\StartupService.ahk
+#Include system\HotkeyRecorder.ahk
 
 class App {
-    __New(store := unset, hotkeys := unset, notifier := unset) {
+    __New(store := unset, hotkeys := unset, notifier := unset, startup := unset) {
         this.store := IsSet(store) ? store : ConfigStore()
         this.hotkeys := IsSet(hotkeys) ? hotkeys : HotkeyBindings()
         this.notifier := IsSet(notifier) ? notifier : Notify()
+        this.startup := IsSet(startup) ? startup : StartupService()
         this.logger := Logger(), this.settings := Defaults.Create()
         this.rules := RuleEngine(this.settings.rules)
         this.paused := false, this.ready := false
         this.applying := false, this.gate := InputCoordinator()
         this.testMode := false
+        this.recordingHotkey := false
         this.handlers := Map() ; Unavailable feature keys are not reserved.
         this.exitHandler := ObjBindMethod(this, "Stop")
     }
@@ -69,7 +73,7 @@ class App {
         adapters.gate := this.gate
         adapters.logger := this.logger
         this.refeed := RefeedFeature(() => this.settings, adapters,
-            () => this.ready && !this.paused && this.settings.enableRefeed)
+            () => this.ready && !this.paused && !this.recordingHotkey && this.settings.enableRefeed)
         this.handlers["refeed"] := (*) => this.RunInputAction(false)
         this.handlers["recover"] := (*) => this.RunInputAction(true)
         if this.HasOwnProp("auto")
@@ -143,7 +147,7 @@ class App {
 
     Bindings(settings) {
         bindings := []
-        if !this.paused && settings.enableRefeed {
+        if !this.paused && !this.recordingHotkey && settings.enableRefeed {
             if this.handlers.Has("refeed")
                 bindings.Push({key: settings.refeedHotkey, callback: this.handlers["refeed"]})
             if this.handlers.Has("recover")
@@ -213,9 +217,15 @@ class App {
 
     ApplyCandidate(candidate, candidateRules, persist := false) {
         this.applying := true
+        startupSnapshot := unset
         try {
             this.hotkeys.Apply(this.Bindings(candidate))
             this.ConfigureAutoTimer(candidate)
+            if candidate.startWithWindows || candidate.startWithWindows != this.settings.startWithWindows {
+                startupSnapshot := this.startup.Snapshot()
+                mode := this.HasOwnProp("auto") ? "--test-all" : this.HasOwnProp("refeed") ? "--test-refeed" : ""
+                this.startup.Apply(candidate.startWithWindows, mode)
+            }
             if persist
                 this.store.Save(candidate)
             wasAutoEnabled := this.settings.enableAutoSwitch
@@ -226,12 +236,20 @@ class App {
                     this.auto.RequestReevaluation()
             }
         } catch as err {
+            startupRollbackError := ""
+            if IsSet(startupSnapshot) {
+                try this.startup.Restore(startupSnapshot)
+                catch as restoreError
+                    startupRollbackError := restoreError.Message
+            }
             try this.hotkeys.Apply(this.Bindings(this.settings))
             if this.ready {
                 try this.ConfigureAutoTimer(this.settings)
             } else if this.HasOwnProp("auto") {
                 try this.scheduler.Stop(this.autoTick)
             }
+            if startupRollbackError != ""
+                throw Error(err.Message "；自启回滚失败：" startupRollbackError)
             throw err
         } finally {
             this.applying := false
@@ -287,6 +305,18 @@ class App {
         if !this.HasOwnProp("settingsWindow")
             this.settingsWindow := SettingsWindow(this)
         this.settingsWindow.Show()
+    }
+    BeginHotkeyCapture() {
+        if !this.ready || this.applying || this.gate.owner != "" || this.recordingHotkey
+            return false
+        this.hotkeys.Apply([])
+        this.recordingHotkey := true
+        return true
+    }
+    EndHotkeyCapture() {
+        this.recordingHotkey := false
+        if this.ready
+            this.hotkeys.Apply(this.Bindings(this.settings))
     }
 
     OpenDiagnostics() {

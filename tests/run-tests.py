@@ -40,6 +40,7 @@ def main():
         ('tests/unit-diagnostics.ahk', [], 'PASS 19 assertions'),
         ('tests/unit-operation-diagnostics.ahk', [], 'PASS 20 assertions'),
         ('tests/integration-settings.ahk', [], 'PASS 24 assertions'),
+        ('tests/unit-startup-recording.ahk', [], 'PASS 30 assertions'),
     ]
     failures = 0
     for relative, arguments, expected in checks:
