@@ -31,6 +31,7 @@ def main():
         ('tests/unit-refeed-feedback.ahk', [], 'PASS 20 assertions'),
         ('tests/unit-ime-ready.ahk', [], 'PASS 18 assertions'),
         ('tests/unit-selection.ahk', [], 'PASS 11 assertions'),
+        ('tests/unit-editable.ahk', [], 'PASS 41 assertions'),
         ('tests/unit-auto-switch.ahk', [], 'PASS 39 assertions'),
         ('tests/unit-app-auto.ahk', [], 'PASS 38 assertions'),
         ('tests/features-mvp.ahk', ['--check'], 'IME P1/P2/P3/P4/P5 modules loaded'),

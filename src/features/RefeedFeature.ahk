@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #Include ..\common\InputCoordinator.ahk
+#Include ..\system\EditableProbe.ahk
 
 class RefeedFeature {
     __New(settingsProvider, adapters, isEnabled) {
@@ -7,6 +8,8 @@ class RefeedFeature {
         this.isEnabled := isEnabled, this.busy := false, this.lastOriginal := ""
         this.gate := adapters.HasOwnProp("gate") ? adapters.gate : InputCoordinator()
         this.onFinish := (*) => 0
+        if !adapters.HasOwnProp("editable")
+            adapters.editable := EditableProbe()
     }
 
     ConvertSelection(*) {
@@ -22,7 +25,12 @@ class RefeedFeature {
         try {
             settings := this.settingsProvider.Call()
             context := this.adapters.contexts.Capture()
-            if !this.adapters.keys.Release()
+            target := this.adapters.editable.Check(context)
+            if target.state = "Editable"
+                this.activeEditable := target
+            if target.state != "Editable"
+                outcome.reason := target.reason
+            else if !this.adapters.keys.Release()
                 outcome.reason := "HotkeyReleaseTimeout"
             else if !this.CanContinue(context)
                 outcome.reason := "TargetChanged"
@@ -31,6 +39,7 @@ class RefeedFeature {
             else if (selection := this.adapters.selection.Check(context)).state != "Selected"
                 outcome.reason := selection.state = "Empty" ? "NoSelection" : "SelectionUnknown"
             else {
+                this.activeEditable := target
                 this.activeSelection := selection
                 this.adapters.clipboard.Begin()
                 outcome := this.Convert(context, settings)
@@ -117,10 +126,15 @@ class RefeedFeature {
         outcome := {ok: false, reason: "RecoverFailed"}, context := 0
         try {
             context := this.adapters.contexts.Capture()
-            if !this.adapters.keys.Release()
+            target := this.adapters.editable.Check(context)
+            if target.state != "Editable"
+                outcome := {ok: false, reason: target.reason}
+            else if !this.adapters.keys.Release()
                 outcome := {ok: false, reason: "HotkeyReleaseTimeout"}
-            else
+            else {
+                this.activeEditable := target
                 outcome := this.adapters.sender.SendOriginal(this.lastOriginal, () => this.CanContinue(context))
+            }
         } catch {
             outcome := {ok: false, reason: "RecoverFailed"}
         } finally {
@@ -132,6 +146,8 @@ class RefeedFeature {
     Finish(outcome, context) {
         if this.HasOwnProp("activeSelection")
             this.DeleteProp("activeSelection")
+        if this.HasOwnProp("activeEditable")
+            this.DeleteProp("activeEditable")
         try this.onFinish.Call(outcome, context)
         catch
             outcome.coordinationReason := "CoordinationFailed"
@@ -142,5 +158,6 @@ class RefeedFeature {
     }
 
     CanContinue(context) => this.isEnabled.Call() && this.adapters.contexts.IsCurrent(context)
+        && (!this.HasOwnProp("activeEditable") || this.adapters.editable.IsCurrent(this.activeEditable, context))
         && (!this.HasOwnProp("activeSelection") || this.adapters.selection.IsCurrent(this.activeSelection))
 }

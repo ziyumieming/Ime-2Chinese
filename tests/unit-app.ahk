@@ -92,7 +92,7 @@ RunTests() {
         output := FakeOutput(), contexts := FakeContext(), clipDriver := FakeClipboardDriver()
         application := App(FakeStore(), HotkeyBindings(FakeHotkeys()), QuietNotify())
         application.AttachRefeed({contexts: contexts, keys: FakeKeys(), ime: PreparedIme(),
-            clipboard: ClipboardService(clipDriver), sender: TextSender(output), selection: FakeSelection()})
+            clipboard: ClipboardService(clipDriver), sender: TextSender(output), selection: FakeSelection(), editable: FakeEditable()})
         TestAssert.Equal(application.Start(), true, "wired MVP starts with injected adapters")
         TestAssert.Equal(application.hotkeys.active.Length, 2, "MVP owns configured keys")
         TestAssert.Equal(application.RunInputAction(false).ok, true, "app dispatches refeed")

@@ -102,3 +102,8 @@ class FakeSelection {
     Check(*) => {state: "Selected", token: 0}
     IsCurrent(*) => true
 }
+class FakeEditable {
+    __New() => (this.state := "Editable", this.reason := "Editable", this.current := true)
+    Check(*) => {state: this.state, reason: this.reason, source: "Fake", token: 0}
+    IsCurrent(*) => this.current && this.state = "Editable"
+}

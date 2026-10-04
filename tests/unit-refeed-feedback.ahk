@@ -31,7 +31,7 @@ class FeedbackFixture {
         this.selection := FeedbackSelection(), this.ime := FeedbackIme()
         this.feature := RefeedFeature(() => this.settings, {contexts: this.contexts, keys: this.keys,
             clipboard: ClipboardService(this.clipDriver), sender: TextSender(this.output),
-            ime: this.ime, selection: this.selection}, () => true)
+            ime: this.ime, selection: this.selection, editable: FakeEditable()}, () => true)
     }
 }
 RunTests()

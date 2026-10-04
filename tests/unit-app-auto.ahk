@@ -101,7 +101,7 @@ RunTests() {
 
         output := FakeOutput(), clipDriver := FakeClipboardDriver()
         application.AttachRefeed({contexts: contexts, keys: FakeKeys(), ime: controller,
-            clipboard: ClipboardService(clipDriver), sender: TextSender(output), selection: FakeSelection()})
+            clipboard: ClipboardService(clipDriver), sender: TextSender(output), selection: FakeSelection(), editable: FakeEditable()})
         callbackOwner := ""
         controller.onPrepare := (*) => ObserveBusy(application, timer, &callbackOwner)
         TestAssert.Equal(application.RunInputAction(false).ok, true, "coordinated refeed succeeds")
