@@ -61,7 +61,7 @@ class App {
         this.tray := TrayMenu(this)
         OnExit(this.exitHandler)
         Persistent(true)
-        this.notifier.Show(this.testMode ? "功能测试已启动，请使用无候选的人工测试文本；自动切换需全功能测试入口和自选规则。"
+        this.notifier.Show(this.testMode ? "功能测试已启动，请使用无候选的人工测试文本；窗口自动切换已暂停开发。"
             : "配置与托盘已启动。输入功能需显式启动测试版。")
     }
 
@@ -245,7 +245,6 @@ class App {
             this.scheduler.Stop(this.autoTick)
     }
 
-    OpenConfig() => Run('notepad.exe "' this.store.path '"')
 
     SaveSettings(baseline, values) {
         if !this.ready
@@ -277,8 +276,8 @@ class App {
 
     InputAvailability() {
         if this.HasOwnProp("auto")
-            return "全功能测试入口：重喂、取回和规则自动切换已接入。"
-        return this.HasOwnProp("refeed") ? "重喂测试入口：自动切换需全功能测试入口。"
+            return "历史全功能入口：重喂、取回及已冻结的自动切换；旧配置保持兼容。"
+        return this.HasOwnProp("refeed") ? "重喂测试入口：已接入重喂与取回；无后台窗口检查。"
             : "当前为设置与托盘入口；输入功能需显式启动测试入口。"
     }
 
@@ -297,7 +296,7 @@ class App {
     DiagnosticSummary() {
         return "运行状态：" (!this.ready ? "未启动" : this.paused ? "已暂停" : "运行中") "`n"
             . this.InputAvailability() "`n重喂偏好：" (this.settings.enableRefeed ? "启用" : "关闭")
-            . "；自动切换偏好：" (this.settings.enableAutoSwitch ? "启用" : "关闭")
+            . "；历史自动切换偏好（已冻结）：" (this.settings.enableAutoSwitch ? "启用" : "关闭")
             . "`n快捷键：" SettingsModel.DisplayHotkey(this.settings.refeedHotkey) " / " SettingsModel.DisplayHotkey(this.settings.recoverHotkey)
             . "`n记录仅在内存保存，连续相同结果合并；不读取当前文本或窗口标题。`n`n" this.logger.Recent()
     }

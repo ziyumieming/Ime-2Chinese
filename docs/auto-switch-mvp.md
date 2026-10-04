@@ -1,8 +1,8 @@
-# 自动切换与全功能 MVP
+# 自动切换与全功能 MVP（历史入口，已冻结）
 
-P4 已实现自动监听、规则变化判断与重喂互斥，真实桌面自动行为待 UAT。普通 `main.ahk` 和仅重喂入口不启用监听。
+按 [Issue #4 决策](issue-4-decisions.md)，停止窗口自动切换的后续开发/桌面验收，移除规则配置；原有代码、定时器和回归测试保留。普通 `main.ahk` 和仅重喂入口不启用监听，不为按键检查增加轮询。
 
-退出旧功能脚本，双击 `tests/features-mvp.ahk`，或运行 `main.ahk --test-all`。托盘显示“全功能 MVP 测试”。使用自己的桌面账户；默认配置没有规则。按需从 [规则示例](rules.md) 复制少量规则到用户配置，再重载；Chrome 的进程名是 `chrome.exe`，Edge 示例不能直接匹配 Chrome。
+`tests/features-mvp.ahk` / `main.ahk --test-all` 仅保留为历史回归入口，使用已有旧配置；不再提供规则创建/编辑入口或推荐新增规则。日常试用使用 `tests/refeed-mvp.ahk`。以下描述历史实现及其限制，不表示继续开发或要求新一轮自动切换 UAT。
 
 ## 预期行为
 

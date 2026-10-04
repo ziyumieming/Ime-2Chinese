@@ -2,4 +2,4 @@
 
 P2 RefeedFeature 已实现无复制的选区观察、校验、中文确认、二次检查、首字符稳定等待、单条缓存及取回。新需求只控制当前中文输入法，其他语言静默跳过；修正版待复测。
 
-P4 AutoSwitchFeature 已实现窗口/规则变化评估、同规则不重复应用、失败不重试及候选保护，通过 InputCoordinator 与手动功能互斥。全功能 MVP 接入原生轮询，暂停/退出取消计时器；见 [全功能说明](../../docs/auto-switch-mvp.md)。
+P4 AutoSwitchFeature 已冻结，保留窗口/规则变化评估、同规则不重复应用、失败不重试及候选保护，通过 InputCoordinator 与手动功能互斥。历史全功能 MVP 保留原有轮询，暂停/退出取消计时器；普通/重喂入口不接入监听，不新增轮询。见 [Issue #4 决策](../../docs/issue-4-decisions.md)。

@@ -75,7 +75,7 @@ RunTests() {
         TestAssert.Throws(() => RuleEngine([MakeRule("bad.id", "a.exe")]), "invalid identity rejected")
         TestAssert.Throws(() => RuleEngine([MakeRule("bad", "C:\a.exe")]), "path rule rejected")
         TestAssert.Throws(() => RuleEngine([MakeRule("bad", "a.exe", "", "Other")]), "invalid action rejected")
-        cfg := ConfigStore.Parse(FileRead(A_ScriptDir "\..\config\rules.example.ini", "UTF-8"))
+        cfg := ConfigStore.Parse(FileRead(A_ScriptDir "\fixtures\legacy-rules.ini", "UTF-8"))
         example := RuleEngine(cfg.rules)
         TestAssert.Equal(example.Match(Context("msedge.exe", "Private - Edge")).mode, "Ignore", "user example ignore")
         TestAssert.Equal(example.Match(Context("msedge.exe", "中文资料 - Edge")).mode, "Chinese", "user example Chinese")

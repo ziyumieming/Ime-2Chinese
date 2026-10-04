@@ -4,11 +4,11 @@ Windows + AutoHotkey v2 输入法辅助工具，面向搜狗拼音，微软拼�
 
 - **文本重喂**：将误输的英文字母重新送入已有中文输入法，由用户选择候选。
 - **取回原文**：在当前光标处插入最近缓存的原文，作为兜底；撤销交给应用的 `Ctrl+Z`。
-- **自动切换**：按进程和窗口标题规则切换中英文模式，尊重后续手动选择。
+- **自动切换（已冻结）**：保留历史实现和测试，停止后续开发，规则配置入口已移除。
 
 ## 当前状态
 
-P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 中英文切换符合预期、取回正常、重喂多数正常；修正版重喂、自动切换和设置交互仍待复测/UAT。普通启动提供设置/托盘/诊断，输入功能通过显式测试入口启用。
+P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 中英文切换、取回及设置/诊断窗口基础交互可用；重喂仍有可编辑位置判断缺口。当前暂停打包，窗口自动切换冻结；下一步完成可编辑位置检查与诊断改造，见 [Issue #4 决策及待办](docs/issue-4-decisions.md)。普通启动提供设置/托盘/诊断，重喂通过显式测试入口启用，按键后检查，不新增轮询。
 
 直接在仓库主分支 `main` 开发和提交，不采用功能分支或 PR 流程。新项目见 [main](https://github.com/ziyumieming/Ime-2Chinese/tree/main)。
 
@@ -24,13 +24,13 @@ P1–P4 MVP 以及 P5 基础设置和可读诊断已实现。用户确认 smoke 
 
 开发检查：用 Python 运行 `tests/run-tests.py`；Python 仅供测试，运行主程序只需 AutoHotkey v2。真实输入法测试见 [测试方案](docs/testing-strategy.md)，可提前使用 `tests/ime-smoke.ahk`。
 
-重喂 MVP：双击 `tests/refeed-mvp.ahk`，或运行 `main.ahk --test-refeed`；全功能 MVP：双击 `tests/features-mvp.ahk`，或运行 `main.ahk --test-all`。在无候选的人工文本上试用；空选区时静默且不复制，其他语言输入法下静默跳过。步骤见 [重喂说明](docs/refeed-mvp.md)、[自动切换说明](docs/auto-switch-mvp.md)，字段见 [诊断说明](docs/ime-diagnostics.md)。
+重喂 MVP：双击 `tests/refeed-mvp.ahk`，或运行 `main.ahk --test-refeed`。`tests/features-mvp.ahk` / `--test-all` 仅保留为含自动切换的历史回归入口，不作为当前试用方向。在无候选的人工文本上试用；空选区时静默且不复制，其他语言输入法下静默跳过。步骤见 [重喂说明](docs/refeed-mvp.md)、[自动切换说明](docs/auto-switch-mvp.md)，字段见 [诊断说明](docs/ime-diagnostics.md)。
 
 - [ROADMAP.md](ROADMAP.md)：阶段进度、已完成事项、验证和下一步。
 - [PLAN.md](PLAN.md)：完整需求、设计边界和验收标准。
 - [用户指南](docs/user-guide.md)：原型使用与当前限制。
 - [设置与诊断](docs/settings-and-diagnostics.md)：修改偏好、保留文件改动、结果查看。
-- [规则说明与示例](docs/rules.md)：文件顺序、Ignore 例外及稳定规则身份。
+- [Issue #4 决策及待办](docs/issue-4-decisions.md)：范围调整、重喂/取回检查与诊断验收。
 - [架构说明](docs/architecture.md)：目录职责和实现顺序。
 - [手动验收](tests/manual-checklist.md)、[兼容记录](tests/compatibility-results.md)。
 

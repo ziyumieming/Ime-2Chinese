@@ -1,4 +1,4 @@
-# 规则引擎（P3）
+# 规则引擎（历史 P3，已冻结）
 
 RuleEngine 已实现有序纯匹配：进程名精确、标题可选文字包含、忽略大小写；返回稳定身份、Chinese/English/Ignore/NoMatch 与原因。SameMatch 比较身份和匹配定义，忽略位置及实际标题刷新；HasTitleRules 为 P4 提供重匹配依据。配置和结果值均复制，匹配不操作系统。
 
