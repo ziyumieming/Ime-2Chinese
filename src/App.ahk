@@ -17,6 +17,8 @@
 #Include rules\RuleEngine.ahk
 #Include system\SelectionProbe.ahk
 #Include features\AutoSwitchFeature.ahk
+#Include config\SettingsModel.ahk
+#Include ui\SettingsWindow.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset) {
@@ -36,7 +38,7 @@ class App {
         if args.Length && args[1] = "--check" {
             ConfigStore.Parse(ConfigStore.Serialize(Defaults.Create()))
             RuleEngine(Defaults.Create().rules)
-            FileAppend("IME P1/P2/P3/P4 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
+            FileAppend("IME P1/P2/P3/P4/P5 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
             ExitApp(0)
         }
         if args.Length {
@@ -244,6 +246,47 @@ class App {
 
     OpenConfig() => Run('notepad.exe "' this.store.path '"')
 
+    SaveSettings(baseline, values) {
+        if !this.ready
+            return {ok: false, message: "程序尚未就绪，未保存设置。"}
+        if this.applying || this.gate.owner != ""
+            return {ok: false, message: "正在处理输入或配置，请稍后再次保存。"}
+        if !this.gate.TryEnter("Settings")
+            return {ok: false, message: "正在处理输入或配置，请稍后再次保存。"}
+        ; The file may have changed while the settings window was open.
+        try {
+            latest := this.store.Load(false)
+            merged := SettingsModel.Merge(baseline, values, latest)
+            candidate := merged.settings, candidateRules := RuleEngine(candidate.rules)
+            wasAutoEnabled := this.settings.enableAutoSwitch
+            this.ApplyCandidate(candidate, candidateRules, merged.changes > 0)
+            this.logger.Record("Settings", "Saved")
+            this.RefreshTray()
+            result := {ok: true, message: "已保存并应用。" (this.paused ? "当前仍暂停。" : ""), settings: SettingsModel.Clone(this.settings)}
+        } catch as err {
+            this.logger.Record("Settings", "Rejected")
+            result := {ok: false, message: "未保存，保留之前的运行配置：" err.Message}
+        } finally {
+            this.gate.Leave("Settings")
+        }
+        if result.ok && !wasAutoEnabled && this.settings.enableAutoSwitch && this.HasOwnProp("auto")
+            this.auto.Reevaluate()
+        return result
+    }
+
+    InputAvailability() {
+        if this.HasOwnProp("auto")
+            return "全功能测试入口：重喂、取回和规则自动切换已接入。"
+        return this.HasOwnProp("refeed") ? "重喂测试入口：自动切换需全功能测试入口。"
+            : "当前为设置与托盘入口；输入功能需显式启动测试入口。"
+    }
+
+    OpenSettings() {
+        if !this.HasOwnProp("settingsWindow")
+            this.settingsWindow := SettingsWindow(this)
+        this.settingsWindow.Show()
+    }
+
     RefreshTray() {
         if this.HasOwnProp("tray")
             this.tray.Refresh()
@@ -251,6 +294,12 @@ class App {
 
     Stop(*) {
         this.ready := false
+        for name in ["settingsWindow", "diagnosticsWindow"] {
+            if this.HasOwnProp(name) {
+                try this.%name%.Close()
+                this.DeleteProp(name)
+            }
+        }
         if this.HasOwnProp("auto")
             this.scheduler.Stop(this.autoTick)
         this.hotkeys.Clear()

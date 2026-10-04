@@ -10,12 +10,14 @@ class TrayMenu {
         A_TrayMenu.Add(this.refeedLabel, (*) => application.ToggleFeature("enableRefeed"))
         A_TrayMenu.Add(this.autoLabel, (*) => application.ToggleFeature("enableAutoSwitch"))
         A_TrayMenu.Add()
+        A_TrayMenu.Add("设置", (*) => application.OpenSettings())
         A_TrayMenu.Add("打开配置", (*) => application.OpenConfig())
+        A_TrayMenu.Add("打开规则配置", (*) => application.OpenConfig())
         A_TrayMenu.Add("重载配置", (*) => application.Reload())
         A_TrayMenu.Add("最近诊断", (*) => MsgBox(application.logger.Recent(), "Ime-2Chinese"))
         A_TrayMenu.Add()
         A_TrayMenu.Add("退出", (*) => ExitApp())
-        A_TrayMenu.Default := "打开配置"
+        A_TrayMenu.Default := "设置"
         this.Refresh()
     }
     Refresh() {
