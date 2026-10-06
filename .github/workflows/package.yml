@@ -1,0 +1,73 @@
+name: Windows package
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: '已存在的版本标签；留空则只构建、不创建 Release'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: package-${{ inputs.release_tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11'
+      - name: Check release input
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+        run: python tools/release.py --validate-tag
+      - name: Test and build standalone package
+        run: python tools/build.py
+      - name: Validate release tooling
+        run: python -m unittest discover -s tests -p 'test_release.py' -v
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-x64-${{ github.sha }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+          retention-days: 30
+      - name: Check release credentials
+        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        env:
+          APP_CLIENT_ID: ${{ vars.APP_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          if (-not $env:APP_CLIENT_ID -or -not $env:APP_PRIVATE_KEY) {
+            throw '请为 virginialogy App 设置 APP_CLIENT_ID variable 和 APP_PRIVATE_KEY secret。构建包已保留在 Artifacts。'
+          }
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        id: app-token
+        with:
+          client-id: ${{ vars.APP_CLIENT_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+      - name: Create or refresh draft release as virginialogy bot
+        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python tools/release.py
