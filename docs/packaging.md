@@ -24,6 +24,8 @@ python tools/build.py
 
 工作流：`.github/workflows/package.yml`。
 
+首次 main 构建已在 GitHub Windows runner [成功运行](https://github.com/ziyumieming/Ime-2Chinese/actions/runs/37417632655)，ZIP 与校验文件已上传为 Artifacts。Release 步骤因本次为普通 main 提交而跳过，尚未验证真实草稿创建。
+
 | 触发 | 行为 |
 | --- | --- |
 | 提交到 main | 自动检查、编译及独立启动验证；保存 ZIP 和校验文件为 Actions Artifacts，保留 30 天 |

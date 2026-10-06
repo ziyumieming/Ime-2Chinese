@@ -16,7 +16,8 @@
 - [x] 29 项 AHK 检查、0 失败；647 项已有案例/断言，加独立生产入口生命周期检查；编译后在空目录再次验证。
 - [x] 6 项发布边界测试通过：不允许错误标签、错误源提交、其他仓库、已公开 Release 或其他作者草稿被覆盖。
 - [x] GitHub 工作流实现 main 提交构建附件、版本标签生成 bot Release 草稿；配置步骤见 [打包说明](docs/packaging.md)。
-- [ ] 远程 Actions 首次构建验证；自动 Release 需要用户配置 App Client ID/private-key。
+- [x] 远程 Actions 首次构建验证：[main 构建成功](https://github.com/ziyumieming/Ime-2Chinese/actions/runs/37417632655)，检查、编译、独立启动、发布边界测试和附件上传均通过。
+- [ ] 自动 Release：配置 App Client ID/private-key 后，在创建版本标签时验证草稿流程；尚未创建标签或公开 Release。
 - [ ] 便携版浏览器/记事本 UAT、快捷键录制、诊断导出与实际登录自启。
 - [ ] UAT 通过后公开测试版或稳定版；当前不创建发布标签、不公开 Release。
 
