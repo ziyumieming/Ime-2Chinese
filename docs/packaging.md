@@ -39,9 +39,11 @@ python tools/build.py
 
 1. 仓库 Settings → Actions → General，允许 Actions 以及本工作流使用的官方 Actions。
 2. GitHub App `virginialogy` 安装授权包含此仓库，具备 **Contents: Read and write**。提交工作流文件还需 App 的 **Workflows: Read and write** 权限；修改 App 权限后接受安装权限更新。
-3. Settings → Secrets and variables → Actions → Variables，添加 `APP_CLIENT_ID`，值为该 App 的 Client ID。
+3. Settings → Secrets and variables → Actions → Variables，添加 `APP_CLIENT_ID`，值为该 App 的 **Client ID**，不是数字 **App ID**。
 4. 同页面 Secrets 添加 `APP_PRIVATE_KEY`，值为该 App 私钥的完整 PEM 内容。Release 作业临时生成仅授予此仓库 Contents write 的安装令牌，并验证 App 名称；不使用个人 PAT 发布。
 5. 按版本号创建已验收提交的标签并推送。标签必须指向包记录的源提交；缺少 Release 凭据时构建附件仍保留，补全后手动填写已有标签重跑。
+
+本轮 [beta.2 发布尝试](https://github.com/ziyumieming/Ime-2Chinese/actions/runs/37433892186) 已完成构建/测试与附件上传，令牌生成时因 `Invalid keyData` 失败，尚未创建 Release。此错误首先检查 `APP_PRIVATE_KEY` 是否为完整私钥 PEM（保留头尾及全部正文），不能填私钥文件路径、密钥 ID 或公钥；当前 `APP_CLIENT_ID` 也需由数字 App ID 改为 Client ID。修正后从 main 勾选 `publish_beta` 重新运行，`release_tag` 留空。
 
 源码在本地修改未提交时仍可生成测试包，`build-info.json` 会记录 `source_dirty: true`；自动 Release 拒绝这类包。工作流固定 Action 的提交 SHA，下载工具固定 SHA-256。
 

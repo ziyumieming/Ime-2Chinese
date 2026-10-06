@@ -13,7 +13,8 @@
 - [x] 关闭统一原生通知接口：启动、成功、失败、重载等均不再显示右下角通知气泡；诊断记录及窗口内反馈保留。
 - [x] 版本更新至 `0.1.0-beta.2`；29 项 AHK 自动检查和 EXE 独立生命周期验证通过。
 - [x] 10 项发布测试通过，涵盖仅公开 beta/rc、上传后才公开、上传失败保持草稿及已公开版本不被覆盖。
-- [ ] 使用 github-bot MCP 手动触发 Actions，核实公开 Release、作者与附件。
+- [x] 使用 github-bot MCP 手动触发 [发布工作流](https://github.com/ziyumieming/Ime-2Chinese/actions/runs/37433892186)，构建/测试和 ZIP/校验文件上传成功。
+- [ ] 公开 Release：生成 App 令牌失败，日志为 `Invalid keyData` / ASN.1 not enough data；私钥需更新为完整 PEM，Client ID 字段当前误填数字 App ID。未创建发布标签或 Release，等待用户更新凭据后重试。
 
 ## P6 便携测试包与发布准备
 
@@ -24,7 +25,7 @@
 - [x] 6 项发布边界测试通过：不允许错误标签、错误源提交、其他仓库、已公开 Release 或其他作者草稿被覆盖。
 - [x] GitHub 工作流实现 main 提交构建附件、版本标签生成 bot Release 草稿；配置步骤见 [打包说明](docs/packaging.md)。
 - [x] 远程 Actions 首次构建验证：[main 构建成功](https://github.com/ziyumieming/Ime-2Chinese/actions/runs/37417632655)，检查、编译、独立启动、发布边界测试和附件上传均通过。
-- [ ] 自动 Release：用户已配置凭据，本轮尝试工作流公开 beta.2；实际结果随后记录。
+- [ ] 自动 Release：已触发公开 beta.2 工作流，但凭据格式错误使令牌生成失败；构建附件可用，更新凭据后重试。
 - [ ] 便携版浏览器/记事本 UAT、快捷键录制、诊断导出与实际登录自启。
 - [ ] 完整 UAT 后再发布稳定版；本轮用户已授权公开 beta.2 测试版。
 
