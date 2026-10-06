@@ -18,7 +18,8 @@ class TrayMenu {
         this.SetChecked("暂停", application.paused)
         A_IconTip := "Ime-2Chinese — " (application.paused ? "已暂停"
             : application.HasOwnProp("auto") ? "历史全功能 MVP（自动切换已冻结）"
-            : application.testMode ? "重喂 MVP 测试" : "配置与托盘可用；输入功能需测试入口")
+            : application.testMode ? "重喂 MVP 测试"
+            : application.HasOwnProp("refeed") ? "重喂与取回原文" : "设置与托盘")
     }
     SetChecked(name, checked) {
         if checked

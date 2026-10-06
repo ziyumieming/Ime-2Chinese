@@ -2,5 +2,6 @@
 #SingleInstance Force
 #Include src\App.ahk
 
-; Normal entry is configuration/tray only. Input features use explicit MVP flags.
+; Production entry: manual refeed/recovery plus settings and diagnostics.
+; Historical automatic window switching remains explicit and frozen.
 App().Run(A_Args)

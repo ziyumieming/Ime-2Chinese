@@ -14,11 +14,16 @@ RunTests() {
     path := directory "\settings.ini"
     application := App(ConfigStore(path), HotkeyBindings(), SilentNotify())
     try {
-        application.Run([]) ; Normal startup path; private test config, no input features.
+        settings := Defaults.Create()
+        settings.refeedHotkey := "^!#F23", settings.recoverHotkey := "^!#F24"
+        application.store.Save(settings)
+        application.Run([]) ; Production path, rare shortcuts; no callback invoked.
         TestAssert.Equal(application.ready, true, "normal entry stays resident")
         TestAssert.Equal(application.HasOwnProp("tray"), true, "tray created")
         TestAssert.Equal(DllCall("GetMenuItemCount", "Ptr", A_TrayMenu.Handle, "Int") > 0, true, "native menu populated")
-        TestAssert.Equal(application.hotkeys.active.Length, 0, "no unimplemented input hotkeys")
+        TestAssert.Equal(application.hotkeys.active.Length, 2, "production manual shortcuts registered")
+        TestAssert.Equal(application.HasOwnProp("auto"), false, "frozen automatic switching not attached")
+        TestAssert.Equal(application.testMode, false, "normal entry is not legacy MVP")
         application.TogglePause()
         TestAssert.Equal(application.paused, true, "pause via native lifecycle")
         application.TogglePause()

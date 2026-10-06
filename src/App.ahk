@@ -22,6 +22,8 @@
 #Include ui\DiagnosticsWindow.ahk
 #Include system\StartupService.ahk
 #Include system\HotkeyRecorder.ahk
+#Include config\AppInfo.ahk
+#Include system\PackageCheck.ahk
 
 class App {
     __New(store := unset, hotkeys := unset, notifier := unset, startup := unset) {
@@ -40,21 +42,26 @@ class App {
     }
 
     Run(args) {
+        if args.Length = 1 && args[1] = "--self-test" {
+            PackageCheck.Run()
+            return
+        }
         if args.Length && args[1] = "--check" {
             ConfigStore.Parse(ConfigStore.Serialize(Defaults.Create()))
             RuleEngine(Defaults.Create().rules)
             FileAppend("IME P1/P2/P3/P4/P5 modules loaded; no config writes, hotkeys or IME operations.`n", "*")
             ExitApp(0)
         }
-        if args.Length {
+        if !args.Length {
+            this.AttachManualInput()
+        } else {
             if args.Length = 1 && (args[1] = "--test-refeed" || args[1] = "--test-all") {
                 this.testMode := true
-                this.AttachRefeed({contexts: NativeInputContext(), keys: TriggerKeys(),
-                    clipboard: ClipboardService(), ime: ImeController(), sender: TextSender(), selection: SelectionProbe()})
+                this.AttachManualInput()
                 if args[1] = "--test-all"
                     this.AttachAuto({contexts: NativeInputContext(), ime: ImeController()})
-            } else {
-                FileAppend("Usage: main.ahk [--check | --test-refeed | --test-all]`n", "*")
+            } else if !(args.Length = 1 && args[1] = "--settings-only") {
+                FileAppend("Usage: Ime-2Chinese [--check | --self-test | --settings-only | --test-refeed | --test-all]`n", "*")
                 ExitApp(2)
             }
         }
@@ -66,7 +73,13 @@ class App {
         OnExit(this.exitHandler)
         Persistent(true)
         this.notifier.Show(this.testMode ? "功能测试已启动，请使用无候选的人工测试文本；窗口自动切换已暂停开发。"
-            : "配置与托盘已启动。输入功能需显式启动测试版。")
+            : this.HasOwnProp("refeed") ? "Ime-2Chinese 已启动，可在输入框中重喂并取回原文。"
+            : "设置与托盘已启动。")
+    }
+
+    AttachManualInput() {
+        this.AttachRefeed({contexts: NativeInputContext(), keys: TriggerKeys(),
+            clipboard: ClipboardService(), ime: ImeController(), sender: TextSender(), selection: SelectionProbe()})
     }
 
     AttachRefeed(adapters) {
@@ -223,7 +236,8 @@ class App {
             this.ConfigureAutoTimer(candidate)
             if candidate.startWithWindows || candidate.startWithWindows != this.settings.startWithWindows {
                 startupSnapshot := this.startup.Snapshot()
-                mode := this.HasOwnProp("auto") ? "--test-all" : this.HasOwnProp("refeed") ? "--test-refeed" : ""
+                mode := this.HasOwnProp("auto") ? "--test-all"
+                    : this.HasOwnProp("refeed") ? (this.testMode ? "--test-refeed" : "") : "--settings-only"
                 this.startup.Apply(candidate.startWithWindows, mode)
             }
             if persist
@@ -297,7 +311,7 @@ class App {
     InputAvailability() {
         if this.HasOwnProp("auto")
             return "历史全功能入口：重喂、取回及已冻结的自动切换；旧配置保持兼容。"
-        return this.HasOwnProp("refeed") ? "重喂测试入口：已接入重喂与取回；无后台窗口检查。"
+        return this.HasOwnProp("refeed") ? (this.testMode ? "重喂测试入口" : "正式入口") "：已接入重喂与取回；无后台窗口检查。"
             : "当前为设置与托盘入口；输入功能需显式启动测试入口。"
     }
 
@@ -330,7 +344,7 @@ class App {
             . this.InputAvailability() "`n重喂偏好：" (this.settings.enableRefeed ? "启用" : "关闭")
             . "；历史自动切换偏好（已冻结）：" (this.settings.enableAutoSwitch ? "启用" : "关闭")
             . "`n快捷键：" SettingsModel.DisplayHotkey(this.settings.refeedHotkey) " / " SettingsModel.DisplayHotkey(this.settings.recoverHotkey)
-            . "`n版本：源码开发版；AutoHotkey " A_AhkVersion
+            . "`n版本：" AppInfo.Version (A_IsCompiled ? "；独立 EXE" : "；源码运行") "；AutoHotkey " A_AhkVersion
             . "`n记录保存在内存；含操作取得的选中文本和完整窗口标题。可主动导出；不额外复制或读取整框内容。`n`n" this.logger.Recent()
     }
 
