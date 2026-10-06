@@ -65,11 +65,18 @@ class Api:
             raise RuntimeError('GitHub API {} failed with HTTP {}'.format(method, exc.code)) from None
 
 
-def create_draft(api, repository, tag, info, assets):
+def create_draft(api, repository, tag, info, assets, publish_beta=False, accept_published=False):
     if repository != 'ziyumieming/Ime-2Chinese':
         raise ValueError('Release target is not the authorized repository')
+    if publish_beta and not re.fullmatch(r'v\d+\.\d+\.\d+-(?:beta|rc)\.\d+', tag):
+        raise ValueError('Direct publishing is limited to beta/rc releases')
     prefix = '/repos/' + repository
     ref = api.request('GET', prefix + '/git/ref/tags/' + urllib.parse.quote(tag, safe=''))
+    if not ref and publish_beta:
+        main_ref = api.request('GET', prefix + '/git/ref/heads/main')
+        if not main_ref or main_ref['object']['sha'] != info['source_commit']:
+            raise ValueError('New beta tag must point to the current packaged main commit')
+        ref = api.request('POST', prefix + '/git/refs', {'ref': 'refs/tags/' + tag, 'sha': info['source_commit']})
     if not ref:
         raise ValueError('Tag must already exist; release must not create it implicitly')
     obj = ref['object']
@@ -80,12 +87,19 @@ def create_draft(api, repository, tag, info, assets):
     if obj['type'] != 'commit' or obj['sha'] != info['source_commit']:
         raise ValueError('Existing tag does not point to packaged source')
     release = api.request('GET', prefix + '/releases/tags/' + urllib.parse.quote(tag, safe=''))
+    if release and not release['draft'] and accept_published:
+        names = {asset['name'] for asset in release.get('assets', [])}
+        if (release['author']['login'] == 'virginialogy[bot]' and release['prerelease'] == ('-' in tag)
+                and all(asset.name in names for asset in assets)):
+            print('Existing published release retained: ' + release['html_url'])
+            return
     if release and (not release['draft'] or release['author']['login'] != 'virginialogy[bot]'):
         raise ValueError('Refusing to overwrite a published or foreign release')
     body = ('Windows x64 便携包，无需安装 AutoHotkey。\n\n'
             '手动重喂/取回原文、设置、诊断导出和登录自启已集成；窗口自动切换继续冻结。\n\n'
             '自动检查和独立 EXE 生命周期已通过，完整桌面 UAT 的结论以 Issue #4 为准。'
-            '公开发布前请完成验收并编辑本草稿。\n\n源提交：`' + info['source_commit'] + '`。')
+            + ('此为公开测试版，供桌面 UAT；不标为稳定版本。' if publish_beta else '公开发布前请完成验收并编辑本草稿。')
+            + '\n\n源提交：`' + info['source_commit'] + '`。')
     values = {'tag_name': tag, 'name': 'Ime-2Chinese ' + tag, 'body': body,
               'draft': True, 'prerelease': '-' in tag}
     if release:
@@ -104,7 +118,14 @@ def create_draft(api, repository, tag, info, assets):
         uploaded = api.request('POST', upload_url, path.read_bytes(), binary=True)
         if uploaded['size'] != path.stat().st_size:
             raise ValueError('Uploaded asset size mismatch')
-    print('Draft release prepared by virginialogy[bot]: ' + release['html_url'])
+        if uploaded.get('digest') and uploaded['digest'] != 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest():
+            raise ValueError('Uploaded asset digest mismatch')
+    if publish_beta:
+        release = api.request('PATCH', prefix + '/releases/' + str(release['id']), {'draft': False, 'prerelease': True})
+        if release['draft'] or not release['prerelease'] or release['author']['login'] != 'virginialogy[bot]':
+            raise ValueError('Unexpected published release status or author')
+    print(('Public prerelease published' if publish_beta else 'Draft release prepared')
+          + ' by virginialogy[bot]: ' + release['html_url'])
 
 
 def main():
@@ -112,6 +133,13 @@ def main():
     parser.add_argument('--validate-tag', action='store_true')
     args = parser.parse_args()
     tag = os.environ.get('RELEASE_TAG', '')
+    publish_beta = os.environ.get('PUBLISH_BETA', 'false').lower() == 'true'
+    if publish_beta:
+        if tag or os.environ.get('GITHUB_REF') != 'refs/heads/main':
+            raise ValueError('Publish beta requires current main with release_tag empty')
+        tag = 'v' + validate_tag('')
+        if not re.fullmatch(r'v\d+\.\d+\.\d+-(?:beta|rc)\.\d+', tag):
+            raise ValueError('Direct publishing is limited to beta/rc releases')
     validate_tag(tag)
     if args.validate_tag:
         print('Release input validated; ' + (tag if tag else 'build only'))
@@ -119,7 +147,8 @@ def main():
     if os.environ.get('APP_SLUG') != 'virginialogy':
         raise ValueError('Only the virginialogy GitHub App may create releases')
     info, assets = validate_bundle(tag, ROOT / 'dist')
-    create_draft(Api(os.environ.get('GH_TOKEN')), os.environ.get('GITHUB_REPOSITORY'), tag, info, assets)
+    accept_published = not publish_beta and os.environ.get('GITHUB_REF_TYPE') == 'tag'
+    create_draft(Api(os.environ.get('GH_TOKEN')), os.environ.get('GITHUB_REPOSITORY'), tag, info, assets, publish_beta, accept_published)
 
 
 if __name__ == '__main__':

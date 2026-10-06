@@ -11,6 +11,11 @@ on:
         required: false
         default: ''
         type: string
+      publish_beta:
+        description: '为当前 main 创建版本标签并公开测试版（仅 beta/rc）'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -34,6 +39,7 @@ jobs:
       - name: Check release input
         env:
           RELEASE_TAG: ${{ inputs.release_tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+          PUBLISH_BETA: ${{ inputs.publish_beta || false }}
         run: python tools/release.py --validate-tag
       - name: Test and build standalone package
         run: python tools/build.py
@@ -48,7 +54,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
       - name: Check release credentials
-        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        if: inputs.publish_beta || inputs.release_tag != '' || github.ref_type == 'tag'
         env:
           APP_CLIENT_ID: ${{ vars.APP_CLIENT_ID }}
           APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
@@ -57,17 +63,18 @@ jobs:
             throw '请为 virginialogy App 设置 APP_CLIENT_ID variable 和 APP_PRIVATE_KEY secret。构建包已保留在 Artifacts。'
           }
       - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
-        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        if: inputs.publish_beta || inputs.release_tag != '' || github.ref_type == 'tag'
         id: app-token
         with:
           client-id: ${{ vars.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           permission-contents: write
-      - name: Create or refresh draft release as virginialogy bot
-        if: inputs.release_tag != '' || github.ref_type == 'tag'
+      - name: Prepare or publish release as virginialogy bot
+        if: inputs.publish_beta || inputs.release_tag != '' || github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ inputs.release_tag || (github.ref_type == 'tag' && github.ref_name) || '' }}
+          PUBLISH_BETA: ${{ inputs.publish_beta || false }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: python tools/release.py
