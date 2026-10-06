@@ -2,6 +2,6 @@
 
 class AppInfo {
     ; Packaging reads these constants for filenames and Windows version resources.
-    static Version := "0.1.0-beta.1"
-    static FileVersion := "0.1.0.1"
+    static Version := "0.1.0-beta.2"
+    static FileVersion := "0.1.0.2"
 }

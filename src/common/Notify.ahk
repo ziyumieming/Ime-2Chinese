@@ -24,5 +24,8 @@ class Notify {
 }
 
 class NativeNotice {
-    Show(message) => TrayTip(message, "Ime-2Chinese")
+    ; No desktop balloons, including startup, success and failure notices.
+    ; Operation results remain available in the diagnostics window.
+    Show(message) {
+    }
 }
